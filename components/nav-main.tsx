@@ -22,7 +22,7 @@ const navItems = [
   { title: 'Folders', url: '/folders', icon: FolderIcon },
   { title: 'Access Tokens', url: '/access', icon: KeyIcon },
   { title: 'Settings', url: '/settings', icon: SettingsIcon },
-  { title: 'Hjælp', url: '/help', icon: HelpCircleIcon },
+  { title: 'Help', url: '/help', icon: HelpCircleIcon },
 ];
 
 export function NavMain() {

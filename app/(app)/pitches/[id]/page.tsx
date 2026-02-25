@@ -409,7 +409,7 @@ export default function PitchDetailPage() {
                         <li key={f} className="flex items-center justify-between gap-2">
                           <span className="text-sm font-mono text-muted-foreground truncate">{f}</span>
                           <Button size="sm" variant="ghost" className="h-7 shrink-0 text-xs" asChild>
-                            <a href={`/pitches/${id}/edit`}>Edit</a>
+                            <a href={`/pitches/${id}/edit?file=${encodeURIComponent(f)}`}>Edit</a>
                           </Button>
                         </li>
                       ))}

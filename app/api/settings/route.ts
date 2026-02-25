@@ -13,6 +13,7 @@ export async function GET() {
       email: user.email,
       name: user.name,
       apiKey: user.apiKey,
+      editorFontSize: user.editorFontSize ?? 16,
     });
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -25,6 +26,7 @@ const schema = z.object({
   currentPassword: z.string().optional(),
   newPassword: z.string().min(8).optional(),
   regenerateApiKey: z.boolean().optional(),
+  editorFontSize: z.number().int().min(10).max(32).optional(),
 });
 
 export async function PUT(request: NextRequest) {
@@ -59,12 +61,17 @@ export async function PUT(request: NextRequest) {
       updates.apiKey = nanoid(32);
     }
 
+    if (data.editorFontSize) {
+      updates.editorFontSize = data.editorFontSize;
+    }
+
     const updated = updateUser(user.id, updates as Parameters<typeof updateUser>[1]);
     return NextResponse.json({
       id: updated!.id,
       email: updated!.email,
       name: updated!.name,
       apiKey: updated!.apiKey,
+      editorFontSize: updated!.editorFontSize ?? 16,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

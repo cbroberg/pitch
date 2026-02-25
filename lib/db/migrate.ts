@@ -85,6 +85,13 @@ export function runMigrations() {
     );
   `);
 
+  // Additive column migrations
+  const cols = db.prepare(`PRAGMA table_info(users)`).all() as { name: string }[];
+  const colNames = cols.map((c) => c.name);
+  if (!colNames.includes('editor_font_size')) {
+    db.exec(`ALTER TABLE users ADD COLUMN editor_font_size INTEGER NOT NULL DEFAULT 16`);
+  }
+
   db.close();
   console.log('[pitch-vault] Migrations completed');
 }

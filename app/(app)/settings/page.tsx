@@ -10,11 +10,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { CopyIcon, RefreshCwIcon } from 'lucide-react';
 
+const FONT_SIZE_OPTIONS = [12, 13, 14, 15, 16, 17, 18, 20, 22, 24];
+
 interface Settings {
   id: string;
   name: string;
   email: string;
   apiKey: string | null;
+  editorFontSize: number;
 }
 
 export default function SettingsPage() {
@@ -24,6 +27,19 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [editorFontSize, setEditorFontSizeState] = useState(16);
+
+  async function handleFontSizeChange(size: number) {
+    setEditorFontSizeState(size);
+    const res = await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ editorFontSize: size }),
+    });
+    if (res.ok) {
+      toast.success(`Editor font size set to ${size}px`);
+    }
+  }
 
   async function load() {
     const res = await fetch('/api/settings');
@@ -32,6 +48,7 @@ export default function SettingsPage() {
       setSettings(data);
       setName(data.name);
       setEmail(data.email);
+      setEditorFontSizeState(data.editorFontSize ?? 16);
     }
   }
 
@@ -150,6 +167,30 @@ export default function SettingsPage() {
               <Button onClick={handleSave} disabled={loading}>
                 {loading ? 'Saving…' : 'Save Changes'}
               </Button>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Editor Font Size</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Default font size in the HTML editor.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {FONT_SIZE_OPTIONS.map((size) => (
+                      <Button
+                        key={size}
+                        size="sm"
+                        variant={editorFontSize === size ? 'default' : 'outline'}
+                        className="w-14"
+                        onClick={() => handleFontSizeChange(size)}
+                      >
+                        {size}px
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
               <Card>
                 <CardHeader>

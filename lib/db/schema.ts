@@ -10,6 +10,7 @@ export const users = sqliteTable('users', {
   hashedPassword: text('hashed_password').notNull(),
   role: text('role').notNull().default('super_admin'),
   apiKey: text('api_key'),
+  editorFontSize: integer('editor_font_size').notNull().default(16),
   createdAt: integer('created_at').notNull().$defaultFn(now),
   updatedAt: integer('updated_at').notNull().$defaultFn(now),
 });

@@ -1,16 +1,24 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
-import { SaveIcon, ArrowLeftIcon, FileIcon, RefreshCwIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { SaveIcon, ArrowLeftIcon, EyeIcon } from 'lucide-react';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
+
+const DEFAULT_FONT_SIZE = 16;
 
 function getLanguage(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase() ?? '';
@@ -30,6 +38,7 @@ function getLanguage(filename: string): string {
 export default function EditPitchPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [files, setFiles] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -38,9 +47,19 @@ export default function EditPitchPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pitchTitle, setPitchTitle] = useState('');
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
 
   const isDirty = content !== savedContent;
 
+  // Load font size from user settings
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.ok ? r.json() : null)
+      .then((s) => { if (s?.editorFontSize) setFontSize(s.editorFontSize); })
+      .catch(() => {});
+  }, []);
+
+  // Load pitch + files
   useEffect(() => {
     fetch(`/api/pitches/${id}`)
       .then((r) => r.json())
@@ -50,15 +69,12 @@ export default function EditPitchPage() {
       .then((r) => r.json())
       .then(({ files: f }: { files: string[] }) => {
         setFiles(f);
-        if (f.length > 0) selectFile(f[0]);
+        const initial = searchParams.get('file') ?? f[0] ?? null;
+        if (initial) loadFile(initial);
       });
   }, [id]);
 
-  const selectFile = useCallback(async (filename: string) => {
-    if (isDirty && selectedFile) {
-      const ok = window.confirm('Du har ugemte ændringer. Fortsæt uden at gemme?');
-      if (!ok) return;
-    }
+  const loadFile = useCallback(async (filename: string) => {
     setLoading(true);
     setSelectedFile(filename);
     const res = await fetch(`/api/pitches/${id}/files/${filename}`);
@@ -68,7 +84,15 @@ export default function EditPitchPage() {
       setSavedContent(c);
     }
     setLoading(false);
-  }, [id, isDirty, selectedFile]);
+  }, [id]);
+
+  async function handleFileChange(filename: string) {
+    if (isDirty) {
+      const ok = window.confirm('Du har ugemte ændringer. Fortsæt uden at gemme?');
+      if (!ok) return;
+    }
+    loadFile(filename);
+  }
 
   async function handleSave() {
     if (!selectedFile) return;
@@ -81,7 +105,7 @@ export default function EditPitchPage() {
       });
       if (res.ok) {
         setSavedContent(content);
-        toast.success(`Saved ${selectedFile}`);
+        toast.success('Saved');
       } else {
         toast.error('Failed to save');
       }
@@ -90,7 +114,7 @@ export default function EditPitchPage() {
     }
   }
 
-  // Cmd/Ctrl+S to save
+  // Cmd/Ctrl+S
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -100,7 +124,7 @@ export default function EditPitchPage() {
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [content, selectedFile]);
+  }, [content, selectedFile, savedContent]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -111,96 +135,70 @@ export default function EditPitchPage() {
           <ArrowLeftIcon className="mr-1 h-4 w-4" />
           Back
         </Button>
-        <span className="text-sm text-muted-foreground">/</span>
-        <span className="text-sm font-medium truncate">{pitchTitle}</span>
-        {selectedFile && (
-          <>
-            <span className="text-sm text-muted-foreground">/</span>
-            <span className="text-sm font-mono text-muted-foreground">{selectedFile}</span>
-          </>
+        <span className="text-sm text-muted-foreground truncate hidden sm:block">{pitchTitle}</span>
+
+        {/* File selector */}
+        {files.length > 0 && (
+          <Select value={selectedFile ?? ''} onValueChange={handleFileChange}>
+            <SelectTrigger className="w-56 h-8 font-mono text-xs">
+              <SelectValue placeholder="Select file…" />
+            </SelectTrigger>
+            <SelectContent>
+              {files.map((f) => (
+                <SelectItem key={f} value={f} className="font-mono text-xs">{f}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
+
         {isDirty && (
-          <Badge variant="outline" className="text-xs ml-1">unsaved</Badge>
+          <Badge variant="outline" className="text-xs shrink-0">unsaved</Badge>
         )}
+
         <div className="ml-auto flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => selectedFile && selectFile(selectedFile)}
-            disabled={loading}
-          >
-            <RefreshCwIcon className="mr-1 h-3.5 w-3.5" />
-            Reload
+          <Button size="sm" variant="outline" asChild>
+            <a href={`/preview/${id}`} target="_blank" rel="noopener noreferrer">
+              <EyeIcon className="mr-1 h-3.5 w-3.5" />
+              Preview
+            </a>
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving || !isDirty}>
+          <Button size="sm" onClick={handleSave} disabled={saving || !isDirty || !selectedFile}>
             <SaveIcon className="mr-1 h-3.5 w-3.5" />
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </div>
       </header>
 
-      {/* Body */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* File tree */}
-        <aside className="w-52 shrink-0 border-r bg-muted/20 overflow-y-auto">
-          <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Files
+      {/* Editor */}
+      <main className="flex-1 overflow-hidden">
+        {!selectedFile || loading ? (
+          <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+            {loading ? 'Loading…' : 'Select a file to edit'}
           </div>
-          <ul className="space-y-0.5 px-2 pb-4">
-            {files.map((f) => (
-              <li key={f}>
-                <button
-                  onClick={() => selectFile(f)}
-                  className={cn(
-                    'w-full flex items-center gap-2 rounded px-2 py-1.5 text-sm text-left transition-colors',
-                    selectedFile === f
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  )}
-                >
-                  <FileIcon className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate font-mono text-xs">{f}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </aside>
-
-        {/* Editor */}
-        <main className="flex-1 overflow-hidden">
-          {!selectedFile ? (
-            <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
-              Select a file to edit
-            </div>
-          ) : loading ? (
-            <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
-              Loading…
-            </div>
-          ) : (
-            <MonacoEditor
-              height="100%"
-              language={getLanguage(selectedFile)}
-              value={content}
-              onChange={(v) => setContent(v ?? '')}
-              theme="vs-dark"
-              options={{
-                fontSize: 14,
-                fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Monaco, monospace",
-                fontLigatures: true,
-                minimap: { enabled: true },
-                wordWrap: 'on',
-                tabSize: 2,
-                scrollBeyondLastLine: false,
-                formatOnPaste: true,
-                automaticLayout: true,
-                bracketPairColorization: { enabled: true },
-                suggest: { showKeywords: true },
-                quickSuggestions: { other: true, comments: false, strings: true },
-              }}
-            />
-          )}
-        </main>
-      </div>
+        ) : (
+          <MonacoEditor
+            height="100%"
+            language={getLanguage(selectedFile)}
+            value={content}
+            onChange={(v) => setContent(v ?? '')}
+            theme="vs-dark"
+            options={{
+              fontSize,
+              fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Monaco, monospace",
+              fontLigatures: true,
+              minimap: { enabled: false },
+              wordWrap: 'on',
+              tabSize: 2,
+              scrollBeyondLastLine: false,
+              formatOnPaste: true,
+              automaticLayout: true,
+              bracketPairColorization: { enabled: true },
+              quickSuggestions: { other: true, comments: false, strings: true },
+              padding: { top: 16 },
+            }}
+          />
+        )}
+      </main>
     </div>
   );
 }

@@ -30,6 +30,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
   ExternalLinkIcon,
@@ -72,6 +79,7 @@ export default function PitchDetailPage() {
   // Invite
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
+  const [inviteExpiry, setInviteExpiry] = useState('never');
 
   const baseUrl =
     typeof window !== 'undefined' ? window.location.origin : '';
@@ -199,6 +207,12 @@ export default function PitchDetailPage() {
   }
 
   async function sendInvite() {
+    const expirySeconds: Record<string, number | null> = {
+      never: null,
+      '24h': Math.floor(Date.now() / 1000) + 60 * 60 * 24,
+      '7d': Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
+      '30d': Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
+    };
     const res = await fetch('/api/invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -206,12 +220,14 @@ export default function PitchDetailPage() {
         pitchId: id,
         email: inviteEmail,
         message: inviteMessage || undefined,
+        expiresAt: expirySeconds[inviteExpiry] ?? null,
       }),
     });
     if (res.ok) {
       setInviteDialogOpen(false);
       setInviteEmail('');
       setInviteMessage('');
+      setInviteExpiry('never');
       toast.success('Invite sent');
     } else {
       toast.error('Failed to send invite');
@@ -541,6 +557,20 @@ export default function PitchDetailPage() {
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="investor@example.com"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Link expires</Label>
+              <Select value={inviteExpiry} onValueChange={setInviteExpiry}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="never">Udløber aldrig</SelectItem>
+                  <SelectItem value="24h">Efter 24 timer</SelectItem>
+                  <SelectItem value="7d">Efter 7 dage</SelectItem>
+                  <SelectItem value="30d">Efter 30 dage</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Personal Message (optional)</Label>

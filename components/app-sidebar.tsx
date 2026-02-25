@@ -1,4 +1,3 @@
-import { LockIcon } from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -12,6 +11,7 @@ import {
 } from '@/components/ui/sidebar';
 import { getUser } from '@/lib/get-user';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export async function AppSidebar() {
   const user = await getUser();
@@ -23,8 +23,7 @@ export async function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
               <Link href="/dashboard">
-                <LockIcon className="h-5 w-5" />
-                <span className="text-base font-semibold">Pitch Vault</span>
+                <Image src="/logo.svg" alt="Pitch Vault" width={120} height={28} className="h-7 w-auto" unoptimized />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

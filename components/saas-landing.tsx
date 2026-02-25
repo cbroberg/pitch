@@ -41,6 +41,9 @@ function Navbar() {
 
         <div className="hidden md:flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard">Dashboard</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
             <Link href="/login">Sign in</Link>
           </Button>
           <Button size="sm" className="bg-indigo-500 hover:bg-indigo-600 text-white" asChild>
@@ -55,6 +58,9 @@ function Navbar() {
 
       {mobileOpen && (
         <div className="absolute top-16 left-0 w-full bg-card border-b border-border p-4 flex flex-col gap-3 md:hidden shadow-lg">
+          <Link href="/dashboard" className="flex items-center justify-center border border-border py-2 rounded-lg font-medium">
+            Dashboard
+          </Link>
           <Link href="/login" className="flex items-center justify-center border border-border py-2 rounded-lg font-medium">
             Sign in
           </Link>

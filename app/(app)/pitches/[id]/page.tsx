@@ -406,8 +406,11 @@ export default function PitchDetailPage() {
                   {files.length > 0 ? (
                     <ul className="space-y-1">
                       {files.map((f) => (
-                        <li key={f} className="text-sm flex items-center gap-2 text-muted-foreground">
-                          <span className="font-mono">{f}</span>
+                        <li key={f} className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-mono text-muted-foreground truncate">{f}</span>
+                          <Button size="sm" variant="ghost" className="h-7 shrink-0 text-xs" asChild>
+                            <a href={`/pitches/${id}/edit`}>Edit</a>
+                          </Button>
                         </li>
                       ))}
                     </ul>

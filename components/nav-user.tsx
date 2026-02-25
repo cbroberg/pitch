@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import {
   SidebarMenu,
@@ -14,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChevronUpIcon, LogOutIcon, SettingsIcon, UserIcon } from 'lucide-react';
+import { ChevronUpIcon, LogOutIcon, SettingsIcon, SunIcon, MoonIcon } from 'lucide-react';
 
 interface NavUserProps {
   user: { name: string; email: string };
@@ -22,6 +23,7 @@ interface NavUserProps {
 
 export function NavUser({ user }: NavUserProps) {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -51,6 +53,14 @@ export function NavUser({ user }: NavUserProps) {
             <DropdownMenuItem onClick={() => router.push('/settings')}>
               <SettingsIcon className="mr-2 h-4 w-4" />
               Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              {theme === 'dark' ? (
+                <SunIcon className="mr-2 h-4 w-4" />
+              ) : (
+                <MoonIcon className="mr-2 h-4 w-4" />
+              )}
+              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

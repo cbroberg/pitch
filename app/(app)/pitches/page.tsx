@@ -10,7 +10,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon } from 'lucide-react';
+import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Pitch } from '@/lib/db/schema';
 
@@ -95,17 +95,30 @@ export default function PitchesPage() {
                             </Badge>
                           )}
                         </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 shrink-0"
-                          asChild
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <a href={`/preview/${pitch.id}`} target="_blank" rel="noopener noreferrer">
-                            <ExternalLinkIcon className="h-3.5 w-3.5" />
-                          </a>
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 shrink-0"
+                            asChild
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Link href={`/pitches/${pitch.id}/edit`}>
+                              <PencilIcon className="h-3.5 w-3.5" />
+                            </Link>
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 shrink-0"
+                            asChild
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <a href={`/preview/${pitch.id}`} target="_blank" rel="noopener noreferrer">
+                              <ExternalLinkIcon className="h-3.5 w-3.5" />
+                            </a>
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

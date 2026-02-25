@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { CopyIcon, TrashIcon, ExternalLinkIcon, KeyIcon } from 'lucide-react';
+import { CopyIcon, TrashIcon, ExternalLinkIcon, KeyIcon, PencilIcon, EyeIcon } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 interface TokenWithPitch {
@@ -176,6 +176,20 @@ function TokenRow({
               >
                 <ExternalLinkIcon className="h-3.5 w-3.5" />
               </a>
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
+              <a
+                href={`/preview/${tok.pitchId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <EyeIcon className="h-3.5 w-3.5" />
+              </a>
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
+              <Link href={`/pitches/${tok.pitchId}/edit`}>
+                <PencilIcon className="h-3.5 w-3.5" />
+              </Link>
             </Button>
             <Button
               size="icon"

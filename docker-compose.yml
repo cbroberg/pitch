@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - STORAGE_PATH=/data
+      - SESSION_SECRET=${SESSION_SECRET:-dev-secret-change-in-production}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-Pitch Vault <noreply@pitchvault.app>}
+      - BASE_URL=${BASE_URL:-http://localhost:3000}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+    volumes:
+      - pitch_data:/data
+    restart: unless-stopped
+
+volumes:
+  pitch_data:

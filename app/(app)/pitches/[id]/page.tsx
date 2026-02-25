@@ -40,6 +40,7 @@ import {
   CopyIcon,
   MailIcon,
   BarChart3Icon,
+  EyeIcon,
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import type { Pitch, AccessToken } from '@/lib/db/schema';
@@ -248,6 +249,12 @@ export default function PitchDetailPage() {
           {pitch.isPublished ? 'Live' : 'Draft'}
         </Badge>
         <div className="ml-auto flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <a href={`/preview/${id}`} target="_blank" rel="noopener noreferrer">
+              <EyeIcon className="mr-1 h-3.5 w-3.5" />
+              Preview
+            </a>
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link href={`/pitches/${id}/stats`}>
               <BarChart3Icon className="mr-1 h-3.5 w-3.5" />

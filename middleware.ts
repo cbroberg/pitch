@@ -9,6 +9,7 @@ const PROTECTED_PATHS = [
   '/folders',
   '/access',
   '/settings',
+  '/preview',
 ];
 
 export function middleware(request: NextRequest) {
@@ -35,5 +36,6 @@ export const config = {
     '/folders/:path*',
     '/access/:path*',
     '/settings/:path*',
+    '/preview/:path*',
   ],
 };

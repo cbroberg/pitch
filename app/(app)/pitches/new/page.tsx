@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -9,15 +9,32 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 import { UploadCloudIcon, FileIcon, XIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { Folder } from '@/lib/db/schema';
 
 export default function NewPitchPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [folderId, setFolderId] = useState<string>('none');
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [files, setFiles] = useState<File[]>([]);
+
+  useEffect(() => {
+    fetch('/api/folders')
+      .then((r) => r.ok ? r.json() : [])
+      .then(setFolders)
+      .catch(() => {});
+  }, []);
   const [loading, setLoading] = useState(false);
 
   const onDrop = useCallback((accepted: File[]) => {
@@ -56,6 +73,7 @@ export default function NewPitchPage() {
       const form = new FormData();
       form.append('title', title);
       if (description) form.append('description', description);
+      if (folderId !== 'none') form.append('folderId', folderId);
       for (const file of files) {
         form.append('files', file, file.name);
       }
@@ -107,6 +125,20 @@ export default function NewPitchPage() {
                     placeholder="Brief description of this pitch…"
                     rows={3}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Folder</Label>
+                  <Select value={folderId} onValueChange={setFolderId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="No folder" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No folder</SelectItem>
+                      {folders.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>

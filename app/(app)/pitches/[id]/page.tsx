@@ -50,7 +50,7 @@ import {
   EyeIcon,
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
-import type { Pitch, AccessToken } from '@/lib/db/schema';
+import type { Pitch, AccessToken, Folder } from '@/lib/db/schema';
 import { cn } from '@/lib/utils';
 
 export default function PitchDetailPage() {
@@ -68,6 +68,8 @@ export default function PitchDetailPage() {
   // Edit state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [folderId, setFolderId] = useState<string>('none');
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [isPublished, setIsPublished] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -96,6 +98,7 @@ export default function PitchDetailPage() {
       setPitch(p);
       setTitle(p.title);
       setDescription(p.description || '');
+      setFolderId(p.folderId ?? 'none');
       setIsPublished(p.isPublished);
     }
     if (filesRes.ok) {
@@ -111,6 +114,10 @@ export default function PitchDetailPage() {
 
   useEffect(() => {
     load();
+    fetch('/api/folders')
+      .then((r) => r.ok ? r.json() : [])
+      .then(setFolders)
+      .catch(() => {});
   }, [id]);
 
   // Separate token fetch from tokens API
@@ -130,7 +137,7 @@ export default function PitchDetailPage() {
       const res = await fetch(`/api/pitches/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description: description || null, isPublished }),
+        body: JSON.stringify({ title, description: description || null, isPublished, folderId: folderId === 'none' ? null : folderId }),
       });
       if (!res.ok) throw new Error('Failed');
       const updated: Pitch = await res.json();
@@ -320,6 +327,20 @@ export default function PitchDetailPage() {
                       rows={4}
                       placeholder="Optional description (markdown supported)…"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Folder</Label>
+                    <Select value={folderId} onValueChange={(v) => { setFolderId(v); setDirty(true); }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="No folder" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No folder</SelectItem>
+                        {folders.map((f) => (
+                          <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="flex items-center gap-3">
                     <Label>Published</Label>

@@ -10,7 +10,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusIcon, PresentationIcon, EyeIcon } from 'lucide-react';
+import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Pitch } from '@/lib/db/schema';
 
@@ -78,21 +78,34 @@ export default function PitchesPage() {
                           {pitch.description}
                         </p>
                       )}
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
-                        <span className="flex items-center gap-1">
-                          <EyeIcon className="h-3 w-3" />
-                          {pitch.totalViews} views
-                        </span>
-                        <span>
-                          {formatDistanceToNow(new Date(pitch.createdAt * 1000), {
-                            addSuffix: true,
-                          })}
-                        </span>
-                        {pitch.fileType && (
-                          <Badge variant="outline" className="text-xs">
-                            {pitch.fileType.toUpperCase()}
-                          </Badge>
-                        )}
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <EyeIcon className="h-3 w-3" />
+                            {pitch.totalViews} views
+                          </span>
+                          <span>
+                            {formatDistanceToNow(new Date(pitch.createdAt * 1000), {
+                              addSuffix: true,
+                            })}
+                          </span>
+                          {pitch.fileType && (
+                            <Badge variant="outline" className="text-xs">
+                              {pitch.fileType.toUpperCase()}
+                            </Badge>
+                          )}
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0"
+                          asChild
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <a href={`/preview/${pitch.id}`} target="_blank" rel="noopener noreferrer">
+                            <ExternalLinkIcon className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>

@@ -16,6 +16,7 @@ import {
   EyeIcon,
   KeyIcon,
   PlusIcon,
+  ExternalLinkIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
@@ -134,6 +135,17 @@ export default function DashboardPage() {
                           <Badge variant={pitch.isPublished ? 'default' : 'secondary'}>
                             {pitch.isPublished ? 'Published' : 'Draft'}
                           </Badge>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 shrink-0"
+                            asChild
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <a href={`/preview/${pitch.id}`} target="_blank" rel="noopener noreferrer">
+                              <ExternalLinkIcon className="h-3.5 w-3.5" />
+                            </a>
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>

@@ -33,13 +33,13 @@ export function SaasLanding() {
 function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { resolvedTheme } = useTheme();
-  const logoSrc = resolvedTheme === 'dark' ? '/pitch-vault-logo-dark.svg' : '/pitch-vault-logo-light.svg';
+  const logoSrc = resolvedTheme === 'light' ? '/pitch-vault-logo-light.svg' : '/pitch-vault-logo-dark.svg';
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-border/60 h-20 flex items-center">
+    <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-border/60 h-24 flex items-center">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 w-full flex justify-between items-center">
         <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-          <Image src={logoSrc} alt="Pitch Vault" width={280} height={160} className="h-12 w-auto" unoptimized />
+          <Image src={logoSrc} alt="Pitch Vault" width={400} height={160} className="h-16 w-auto" unoptimized />
         </a>
 
         <div className="hidden md:flex items-center gap-3">
@@ -60,7 +60,7 @@ function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="absolute top-20 left-0 w-full bg-card border-b border-border p-4 flex flex-col gap-3 md:hidden shadow-lg">
+        <div className="absolute top-24 left-0 w-full bg-card border-b border-border p-4 flex flex-col gap-3 md:hidden shadow-lg">
           <Link href="/dashboard" className="flex items-center justify-center border border-border py-2 rounded-lg font-medium">
             Dashboard
           </Link>
@@ -78,7 +78,7 @@ function Navbar() {
 
 function HeroSection() {
   return (
-    <section className="pt-36 pb-20 px-4 text-center">
+    <section className="pt-44 pb-20 px-4 text-center">
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-sm text-indigo-400">
           <ShieldCheckIcon className="h-3.5 w-3.5" />
@@ -202,13 +202,13 @@ function HowItWorksSection() {
 
 function FooterSection() {
   const { resolvedTheme } = useTheme();
-  const logoSrc = resolvedTheme === 'dark' ? '/pitch-vault-logo-dark.svg' : '/pitch-vault-logo-light.svg';
+  const logoSrc = resolvedTheme === 'light' ? '/pitch-vault-logo-light.svg' : '/pitch-vault-logo-dark.svg';
 
   return (
     <footer className="border-t border-border/60 py-8 px-4">
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-        <Image src={logoSrc} alt="Pitch Vault" width={160} height={91} className="h-8 w-auto opacity-70" unoptimized />
-        <p>Pitch Vault by Broberg · Self-hosted</p>
+        <Image src={logoSrc} alt="Pitch Vault" width={200} height={80} className="h-10 w-auto opacity-70" unoptimized />
+        <p>Pitch Vault by Christian Broberg · Self-hosted</p>
       </div>
     </footer>
   );

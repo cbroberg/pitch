@@ -108,8 +108,19 @@ export default function PitchDetailPage() {
   }
 
   async function loadTokens() {
-    const res = await fetch(`/api/pitches/${id}/tokens`);
-    if (res.ok) setTokens(await res.json());
+    try {
+      const res = await fetch(`/api/pitches/${id}/tokens`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setTokens(data);
+      } else {
+        const text = await res.text();
+        console.error('[loadTokens] failed', res.status, text);
+        toast.error(`Could not load tokens (${res.status})`);
+      }
+    } catch (err) {
+      console.error('[loadTokens] error', err);
+    }
   }
 
   useEffect(() => {

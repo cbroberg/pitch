@@ -7,6 +7,7 @@ export function buildInviteEmail(params: {
   expiresAt: Date | null;
 }): { html: string; text: string } {
   const { pitchTitle, viewUrl, message, expiresAt } = params;
+  const baseUrl = process.env.BASE_URL || 'https://pitch-vault.fly.dev';
 
   const expiryText = expiresAt
     ? `This link expires on ${format(expiresAt, 'PPP')}.`
@@ -25,8 +26,8 @@ export function buildInviteEmail(params: {
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 0; background: #f9fafb;">
   <div style="max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-    <div style="background: #1e3a5f; padding: 32px; text-align: center;">
-      <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Pitch Vault</h1>
+    <div style="background: #0d0f1a; padding: 28px 32px; text-align: center;">
+      <img src="${baseUrl}/pitch-vault-logo-dark.svg" alt="Pitch Vault" width="200" height="114" style="height: 48px; width: auto; display: inline-block;" />
     </div>
     <div style="padding: 32px;">
       <h2 style="margin: 0 0 16px; color: #111827; font-size: 20px;">You've been invited to view a pitch</h2>

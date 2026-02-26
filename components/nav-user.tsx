@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
+import { useState } from 'react';
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -19,11 +20,13 @@ import { ChevronUpIcon, LogOutIcon, SettingsIcon, SunIcon, MoonIcon } from 'luci
 
 interface NavUserProps {
   user: { name: string; email: string };
+  avatarUrl: string;
 }
 
-export function NavUser({ user }: NavUserProps) {
+export function NavUser({ user, avatarUrl }: NavUserProps) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const [imgError, setImgError] = useState(false);
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -37,9 +40,18 @@ export function NavUser({ user }: NavUserProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton className="h-auto py-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold shrink-0">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
+              {!imgError ? (
+                <img
+                  src={avatarUrl}
+                  alt={user.name}
+                  onError={() => setImgError(true)}
+                  className="h-7 w-7 rounded-full shrink-0 object-cover"
+                />
+              ) : (
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold shrink-0">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
               <div className="flex flex-col text-left text-sm overflow-hidden">
                 <span className="font-medium truncate">{user.name}</span>
                 <span className="text-xs text-muted-foreground truncate">

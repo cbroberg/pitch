@@ -9,9 +9,12 @@ import {
 import { getUser } from '@/lib/get-user';
 import Link from 'next/link';
 import Image from 'next/image';
+import crypto from 'crypto';
 
 export async function AppSidebar() {
   const user = await getUser();
+  const hash = crypto.createHash('md5').update(user.email.toLowerCase().trim()).digest('hex');
+  const avatarUrl = `https://www.gravatar.com/avatar/${hash}?s=64&d=mp`;
 
   return (
     <Sidebar collapsible="offcanvas">
@@ -24,7 +27,7 @@ export async function AppSidebar() {
         <NavMain />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={{ name: user.name, email: user.email }} />
+        <NavUser user={{ name: user.name, email: user.email }} avatarUrl={avatarUrl} />
       </SidebarFooter>
     </Sidebar>
   );

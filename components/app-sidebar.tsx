@@ -23,7 +23,7 @@ export async function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
               <Link href="/dashboard">
-                <Image src="/logo.svg" alt="Pitch Vault" width={120} height={28} className="h-7 w-auto" unoptimized />
+                <Image src="/pitch-vault-logo-dark.svg" alt="Pitch Vault" width={160} height={91} className="h-7 w-auto" unoptimized />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

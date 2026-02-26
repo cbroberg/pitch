@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import {
   KeyIcon,
@@ -31,12 +32,14 @@ export function SaasLanding() {
 
 function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { resolvedTheme } = useTheme();
+  const logoSrc = resolvedTheme === 'dark' ? '/pitch-vault-logo-dark.svg' : '/pitch-vault-logo-light.svg';
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-border/60 h-16 flex items-center">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 w-full flex justify-between items-center">
         <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-          <Image src="/logo.svg" alt="Pitch Vault" width={140} height={32} className="h-8 w-auto" unoptimized />
+          <Image src={logoSrc} alt="Pitch Vault" width={140} height={80} className="h-8 w-auto" unoptimized />
         </a>
 
         <div className="hidden md:flex items-center gap-3">
@@ -198,10 +201,13 @@ function HowItWorksSection() {
 }
 
 function FooterSection() {
+  const { resolvedTheme } = useTheme();
+  const logoSrc = resolvedTheme === 'dark' ? '/pitch-vault-logo-dark.svg' : '/pitch-vault-logo-light.svg';
+
   return (
     <footer className="border-t border-border/60 py-8 px-4">
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-        <Image src="/logo.svg" alt="Pitch Vault" width={100} height={24} className="h-6 w-auto opacity-60" unoptimized />
+        <Image src={logoSrc} alt="Pitch Vault" width={100} height={57} className="h-6 w-auto opacity-60" unoptimized />
         <p>Pitch Vault by Broberg · Self-hosted</p>
       </div>
     </footer>

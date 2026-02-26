@@ -298,7 +298,7 @@ export default function PitchDetailPage() {
 
       <main className="flex-1 p-4 md:p-6">
         <div className="max-w-3xl space-y-6">
-          <Tabs defaultValue="details">
+          <Tabs defaultValue="details" onValueChange={(v) => { if (v === 'access') loadTokens(); }}>
             <TabsList>
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>

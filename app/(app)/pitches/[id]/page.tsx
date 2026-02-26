@@ -114,21 +114,11 @@ export default function PitchDetailPage() {
 
   useEffect(() => {
     load();
+    loadTokens();
     fetch('/api/folders')
       .then((r) => r.ok ? r.json() : [])
       .then(setFolders)
       .catch(() => {});
-  }, [id]);
-
-  // Separate token fetch from tokens API
-  useEffect(() => {
-    fetch(`/api/pitches/${id}`)
-      .then(() =>
-        fetch('/api/tokens/list?pitchId=' + id)
-          .then((r) => (r.ok ? r.json() : []))
-          .then(setTokens)
-          .catch(() => setTokens([])),
-      );
   }, [id]);
 
   async function handleSave() {
@@ -236,6 +226,7 @@ export default function PitchDetailPage() {
       setInviteMessage('');
       setInviteExpiry('never');
       toast.success('Invite sent');
+      loadTokens();
     } else {
       toast.error('Failed to send invite');
     }

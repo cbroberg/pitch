@@ -37,7 +37,7 @@ export default function PitchesPage() {
   }
 
   return (
-    <>
+    <div className="[zoom:0.9]">
       <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4">
         <SidebarTrigger />
         <h1 className="text-base font-semibold">Pitches</h1>
@@ -234,6 +234,6 @@ export default function PitchesPage() {
           )}
         </div>
       </main>
-    </>
+    </div>
   );
 }

@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       slug,
       description: description || null,
       folderId: folderId || null,
+      isPublished: true,
     });
 
     // Handle file uploads

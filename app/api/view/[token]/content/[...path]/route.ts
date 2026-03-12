@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { validateToken } from '@/lib/db/queries/access-tokens';
 import { getPitchById } from '@/lib/db/queries/pitches';
 import { getPitchStoragePath } from '@/lib/storage';
@@ -15,6 +16,15 @@ export async function GET(
 
   if (!result.valid) {
     return NextResponse.json({ error: result.reason }, { status: 403 });
+  }
+
+  // Block content if PIN required but not verified
+  if (result.tokenRecord.pin) {
+    const cookieStore = await cookies();
+    const verified = cookieStore.get(`pin-verified-${token}`);
+    if (!verified) {
+      return NextResponse.json({ error: 'PIN verification required' }, { status: 403 });
+    }
   }
 
   const pitch = getPitchById(result.pitchId);

@@ -48,6 +48,8 @@ import {
   MailIcon,
   BarChart3Icon,
   EyeIcon,
+  ShieldCheckIcon,
+  RefreshCwIcon,
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import type { Pitch, AccessToken, Folder } from '@/lib/db/schema';
@@ -212,6 +214,19 @@ export default function PitchDetailPage() {
       prev.map((t) => (t.id === tokenId ? { ...t, isRevoked: true } : t)),
     );
     toast.success('Token revoked');
+  }
+
+  async function resendWithPin(tokenId: string) {
+    const res = await fetch(`/api/tokens/${tokenId}/resend-with-pin`, {
+      method: 'POST',
+    });
+    if (res.ok) {
+      toast.success('New invite with PIN sent');
+      loadTokens();
+    } else {
+      const data = await res.json();
+      toast.error(data.error || 'Failed to resend');
+    }
   }
 
   async function sendInvite() {
@@ -462,6 +477,12 @@ export default function PitchDetailPage() {
                             <Badge variant={tok.isRevoked ? 'destructive' : 'secondary'} className="text-xs">
                               {tok.isRevoked ? 'Revoked' : tok.type}
                             </Badge>
+                            {tok.pin && (
+                              <Badge variant="outline" className="text-xs gap-1">
+                                <ShieldCheckIcon className="h-3 w-3" />
+                                PIN
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-xs text-muted-foreground">
                             {tok.email && <span>{tok.email} · </span>}
@@ -474,6 +495,17 @@ export default function PitchDetailPage() {
                         <div className="flex items-center gap-1 shrink-0 ml-2">
                           {!tok.isRevoked && (
                             <>
+                              {!tok.pin && tok.email && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  title="Revoke & resend with PIN"
+                                  onClick={() => resendWithPin(tok.id)}
+                                >
+                                  <RefreshCwIcon className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                               <Button
                                 size="icon"
                                 variant="ghost"

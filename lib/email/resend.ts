@@ -13,6 +13,7 @@ export async function sendInviteEmail(params: {
   viewUrl: string;
   message?: string;
   expiresAt: Date | null;
+  pin?: string;
 }): Promise<void> {
   const resend = getResend();
   const from =

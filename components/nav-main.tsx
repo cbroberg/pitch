@@ -9,6 +9,7 @@ import {
   KeyIcon,
   SettingsIcon,
   HelpCircleIcon,
+  LayoutTemplateIcon,
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -19,6 +20,7 @@ import {
 const navItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboardIcon },
   { title: 'Pitches', url: '/pitches', icon: PresentationIcon },
+  { title: 'Templates', url: '/templates', icon: LayoutTemplateIcon },
   { title: 'Folders', url: '/folders', icon: FolderIcon },
   { title: 'Access Tokens', url: '/access', icon: KeyIcon },
   { title: 'Settings', url: '/settings', icon: SettingsIcon },

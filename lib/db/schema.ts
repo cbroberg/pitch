@@ -83,6 +83,15 @@ export const viewEvents = sqliteTable('view_events', {
   createdAt: integer('created_at').notNull().$defaultFn(now),
 });
 
+export const templates = sqliteTable('templates', {
+  id: text('id').primaryKey().$defaultFn(() => nanoid()),
+  name: text('name').notNull(),
+  description: text('description'),
+  sourcePitchId: text('source_pitch_id').references(() => pitches.id, { onDelete: 'set null' }),
+  createdAt: integer('created_at').notNull().$defaultFn(now),
+  updatedAt: integer('updated_at').notNull().$defaultFn(now),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
@@ -91,3 +100,5 @@ export type Pitch = typeof pitches.$inferSelect;
 export type NewPitch = typeof pitches.$inferInsert;
 export type AccessToken = typeof accessTokens.$inferSelect;
 export type ViewEvent = typeof viewEvents.$inferSelect;
+export type Template = typeof templates.$inferSelect;
+export type NewTemplate = typeof templates.$inferInsert;

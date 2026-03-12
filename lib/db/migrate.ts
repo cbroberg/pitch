@@ -6,9 +6,11 @@ export function runMigrations() {
   const dataDir = process.env.STORAGE_PATH || path.join(process.cwd(), 'data');
   const dbDir = path.join(dataDir, 'db');
   const pitchesDir = path.join(dataDir, 'pitches');
+  const templatesDir = path.join(dataDir, 'templates');
 
   fs.mkdirSync(dbDir, { recursive: true });
   fs.mkdirSync(pitchesDir, { recursive: true });
+  fs.mkdirSync(templatesDir, { recursive: true });
 
   const dbPath = path.join(dbDir, 'pitch-vault.db');
   const db = new Database(dbPath);
@@ -82,6 +84,17 @@ export function runMigrations() {
       user_agent TEXT,
       duration INTEGER,
       created_at INTEGER NOT NULL
+    );
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS templates (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      source_pitch_id TEXT REFERENCES pitches(id) ON DELETE SET NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
     );
   `);
 

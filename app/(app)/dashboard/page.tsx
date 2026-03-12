@@ -20,6 +20,7 @@ import {
   PencilIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PitchThumbnail } from '@/components/pitch-thumbnail';
 import { formatDistanceToNow } from 'date-fns';
 import type { Pitch } from '@/lib/db/schema';
 
@@ -120,9 +121,14 @@ export default function DashboardPage() {
                 {stats.recentPitches.map((pitch) => (
                   <Link key={pitch.id} href={`/pitches/${pitch.id}`}>
                     <Card className="transition-colors hover:bg-muted/50">
-                      <CardContent className="flex items-center justify-between py-4 px-5">
-                        <div>
-                          <p className="font-medium">{pitch.title}</p>
+                      <CardContent className="flex items-center gap-4 py-3 px-4">
+                        <PitchThumbnail
+                          pitchId={pitch.id}
+                          fileType={pitch.fileType}
+                          className="w-24 h-[54px] rounded object-cover"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{pitch.title}</p>
                           <p className="text-sm text-muted-foreground">
                             {formatDistanceToNow(new Date(pitch.createdAt * 1000), {
                               addSuffix: true,

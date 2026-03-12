@@ -10,7 +10,9 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon } from 'lucide-react';
+import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { PitchThumbnail } from '@/components/pitch-thumbnail';
 import { formatDistanceToNow } from 'date-fns';
 import type { Pitch } from '@/lib/db/schema';
 
@@ -19,6 +21,16 @@ type ViewMode = 'grid' | 'list';
 export default function PitchesPage() {
   const [pitches, setPitches] = useState<Pitch[] | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [thumbKey, setThumbKey] = useState(0);
+
+  async function generateAllThumbnails() {
+    const res = await fetch('/api/pitches/thumbnails-batch', { method: 'POST' });
+    if (res.ok) {
+      const { queued } = await res.json();
+      toast.success(queued > 0 ? `Genererer ${queued} thumbnail(s) i baggrunden…` : 'Alle thumbnails er allerede opdaterede');
+      if (queued > 0) setTimeout(() => setThumbKey((k) => k + 1), 12000);
+    }
+  }
 
   useEffect(() => {
     const saved = localStorage.getItem('pitches-view-mode') as ViewMode | null;
@@ -62,6 +74,10 @@ export default function PitchesPage() {
               <ListIcon className="h-3.5 w-3.5" />
             </Button>
           </div>
+          <Button variant="outline" size="sm" onClick={generateAllThumbnails}>
+            <ImageIcon className="mr-1 h-3.5 w-3.5" />
+            Thumbnails
+          </Button>
           <Button asChild size="sm">
             <Link href="/pitches/new">
               <PlusIcon className="mr-1 h-4 w-4" />
@@ -103,8 +119,9 @@ export default function PitchesPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {pitches.map((pitch) => (
                 <Link key={pitch.id} href={`/pitches/${pitch.id}`}>
-                  <Card className="h-full transition-colors hover:bg-muted/50 cursor-pointer">
-                    <CardContent className="p-5 space-y-3">
+                  <Card className="h-full transition-colors hover:bg-muted/50 cursor-pointer overflow-hidden">
+                    <PitchThumbnail pitchId={pitch.id} fileType={pitch.fileType} className="w-full aspect-video object-cover object-top" cacheBust={thumbKey} />
+                    <CardContent className="p-4 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="font-semibold leading-tight">{pitch.title}</h3>
                         <Badge
@@ -174,6 +191,7 @@ export default function PitchesPage() {
                   href={`/pitches/${pitch.id}`}
                   className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/50"
                 >
+                  <PitchThumbnail pitchId={pitch.id} fileType={pitch.fileType} className="w-16 h-10 object-cover object-top rounded shrink-0" cacheBust={thumbKey} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium truncate">{pitch.title}</span>

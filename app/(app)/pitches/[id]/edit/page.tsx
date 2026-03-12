@@ -20,6 +20,16 @@ const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false 
 
 const DEFAULT_FONT_SIZE = 16;
 
+const TEXT_EXTENSIONS = new Set([
+  'html', 'htm', 'css', 'js', 'mjs', 'cjs', 'ts', 'tsx', 'jsx',
+  'json', 'md', 'txt', 'svg', 'xml', 'yaml', 'yml', 'toml', 'csv',
+]);
+
+function isTextFile(filename: string): boolean {
+  const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+  return TEXT_EXTENSIONS.has(ext);
+}
+
 function getLanguage(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase() ?? '';
   const map: Record<string, string> = {
@@ -68,8 +78,11 @@ export default function EditPitchPage() {
     fetch(`/api/pitches/${id}/files`)
       .then((r) => r.json())
       .then(({ files: f }: { files: string[] }) => {
-        setFiles(f);
-        const initial = searchParams.get('file') ?? f[0] ?? null;
+        const textFiles = f.filter(isTextFile);
+        setFiles(textFiles);
+        const requested = searchParams.get('file');
+        const initial = (requested && isTextFile(requested) ? requested : null)
+          ?? textFiles[0] ?? null;
         if (initial) loadFile(initial);
       });
   }, [id]);

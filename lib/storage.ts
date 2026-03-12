@@ -9,6 +9,10 @@ export function getPitchStoragePath(pitchId: string): string {
   return path.join(getDataDir(), 'pitches', pitchId);
 }
 
+export function getTemplateStoragePath(templateId: string): string {
+  return path.join(getDataDir(), 'templates', templateId);
+}
+
 export function ensureDir(dirPath: string): void {
   fs.mkdirSync(dirPath, { recursive: true });
 }

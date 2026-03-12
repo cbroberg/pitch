@@ -10,7 +10,7 @@ primary_region = "arn"
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
 
   [[http_service.checks]]
     grace_period = "30s"
@@ -21,7 +21,7 @@ primary_region = "arn"
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "1gb"
 
 [[mounts]]
   source = "pitch_vault_data"

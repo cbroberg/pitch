@@ -58,3 +58,33 @@ export async function PUT(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string; path: string[] }> },
+) {
+  try {
+    await getUserId();
+    const { id, path: pathSegments } = await params;
+
+    const pitch = getPitchById(id);
+    if (!pitch) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    const dir = getPitchStoragePath(id);
+    const filePath = path.resolve(dir, pathSegments.join('/'));
+    if (!filePath.startsWith(dir)) {
+      return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
+    }
+    // Protect internal files
+    const basename = path.basename(filePath);
+    if (basename.startsWith('.')) {
+      return NextResponse.json({ error: 'Cannot delete internal files' }, { status: 403 });
+    }
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+}

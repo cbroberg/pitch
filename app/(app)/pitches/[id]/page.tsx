@@ -41,6 +41,7 @@ import { toast } from 'sonner';
 import {
   ExternalLinkIcon,
   KeyIcon,
+  MousePointer2Icon,
   PlusIcon,
   TrashIcon,
   UploadCloudIcon,
@@ -49,10 +50,14 @@ import {
   BarChart3Icon,
   EyeIcon,
   ShieldCheckIcon,
+  LayoutTemplateIcon,
+  SparklesIcon,
   RefreshCwIcon,
+  DownloadIcon,
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import type { Pitch, AccessToken, Folder } from '@/lib/db/schema';
+import { PitchThumbnail } from '@/components/pitch-thumbnail';
 import { cn } from '@/lib/utils';
 
 export default function PitchDetailPage() {
@@ -74,6 +79,28 @@ export default function PitchDetailPage() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [isPublished, setIsPublished] = useState(false);
   const [dirty, setDirty] = useState(false);
+
+  const [thumbKey, setThumbKey] = useState(0);
+  const [thumbRefreshing, setThumbRefreshing] = useState(false);
+
+  async function refreshThumbnail() {
+    setThumbRefreshing(true);
+    await fetch(`/api/pitches/${id}/thumbnail`, { method: 'POST' });
+    // Poll until file appears (max ~15s)
+    for (let i = 0; i < 15; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      const check = await fetch(`/api/pitches/${id}/thumbnail`);
+      if (check.ok) break;
+    }
+    setThumbKey((k) => k + 1);
+    setThumbRefreshing(false);
+  }
+
+  // Template dialog
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   // Token creation
   const [tokenType, setTokenType] = useState<'anonymous' | 'personal'>('anonymous');
@@ -258,6 +285,44 @@ export default function PitchDetailPage() {
     }
   }
 
+  async function saveAsTemplate() {
+    if (!templateName.trim()) return;
+    setSavingTemplate(true);
+    try {
+      const res = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pitchId: id,
+          name: templateName.trim(),
+          description: templateDescription.trim() || null,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      setTemplateDialogOpen(false);
+      setTemplateName('');
+      setTemplateDescription('');
+      toast.success('Saved as template');
+    } catch {
+      toast.error('Failed to save template');
+    } finally {
+      setSavingTemplate(false);
+    }
+  }
+
+  async function downloadFile(filename: string) {
+    const res = await fetch(`/api/pitches/${id}/files/${encodeURIComponent(filename)}`);
+    if (!res.ok) { toast.error('Download failed'); return; }
+    const { content } = await res.json();
+    const blob = new Blob([content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function copyLink(token: string) {
     navigator.clipboard.writeText(`${baseUrl}/view/${token}`);
     toast.success('Link copied');
@@ -295,11 +360,38 @@ export default function PitchDetailPage() {
               Preview
             </a>
           </Button>
+          {pitch.fileType === 'html' && (
+            <>
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/pitches/${id}/visual`}>
+                  <MousePointer2Icon className="mr-1 h-3.5 w-3.5" />
+                  Visual Edit
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/pitches/${id}/ai`}>
+                  <SparklesIcon className="mr-1 h-3.5 w-3.5" />
+                  Edit med AI
+                </Link>
+              </Button>
+            </>
+          )}
           <Button asChild variant="outline" size="sm">
             <Link href={`/pitches/${id}/stats`}>
               <BarChart3Icon className="mr-1 h-3.5 w-3.5" />
               Stats
             </Link>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setTemplateName(pitch.title);
+              setTemplateDialogOpen(true);
+            }}
+          >
+            <LayoutTemplateIcon className="mr-1 h-3.5 w-3.5" />
+            Save as Template
           </Button>
           <Button
             variant="destructive"
@@ -385,6 +477,29 @@ export default function PitchDetailPage() {
                       {isPublished ? 'Accessible via token links' : 'Not accessible to viewers'}
                     </span>
                   </div>
+                  {pitch.fileType === 'html' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Thumbnail</Label>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={refreshThumbnail}
+                          disabled={thumbRefreshing}
+                          className="h-7 text-xs"
+                        >
+                          <RefreshCwIcon className={cn('mr-1 h-3 w-3', thumbRefreshing && 'animate-spin')} />
+                          {thumbRefreshing ? 'Genererer…' : 'Opdater'}
+                        </Button>
+                      </div>
+                      <PitchThumbnail
+                        key={thumbKey}
+                        pitchId={id}
+                        fileType={pitch.fileType}
+                        className="w-full aspect-video object-cover object-top rounded-lg border"
+                      />
+                    </div>
+                  )}
                   {dirty && (
                     <Button onClick={handleSave} disabled={loading}>
                       {loading ? 'Saving…' : 'Save Changes'}
@@ -397,13 +512,15 @@ export default function PitchDetailPage() {
             <TabsContent value="files" className="space-y-4 pt-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Upload Files</CardTitle>
+                  <CardTitle>
+                    {pitch.fileType === 'html' ? 'Replace Pitch HTML' : 'Upload Files'}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div
                     {...getRootProps()}
                     className={cn(
-                      'flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center cursor-pointer transition-colors',
+                      'flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 text-center cursor-pointer transition-colors',
                       isDragActive
                         ? 'border-primary bg-primary/5'
                         : 'border-border hover:border-primary/50',
@@ -411,29 +528,78 @@ export default function PitchDetailPage() {
                   >
                     <input {...getInputProps()} />
                     <UploadCloudIcon className="mb-2 h-8 w-8 text-muted-foreground" />
-                    <p className="text-sm font-medium">Drop files to add or replace</p>
+                    <p className="text-sm font-medium">
+                      {pitch.fileType === 'html'
+                        ? 'Drop new HTML to replace current pitch'
+                        : 'Drop files to upload'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {pitch.fileType === 'html'
+                        ? 'Existing HTML is replaced automatically'
+                        : 'HTML files are always saved as index.html'}
+                    </p>
                   </div>
 
+                  {/* Current pitch file — download */}
                   {pitch.entryFile && (
-                    <p className="text-sm text-muted-foreground">
-                      Entry file: <code className="bg-muted px-1 rounded">{pitch.entryFile}</code>
-                    </p>
+                    <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
+                      <span className="text-xs text-muted-foreground">Current pitch:</span>
+                      <code className="text-xs font-mono">{pitch.entryFile}</code>
+                      <span className="text-xs text-emerald-500">✓</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="ml-auto h-6 text-xs px-2 gap-1"
+                        onClick={() => downloadFile(pitch.entryFile!)}
+                      >
+                        <DownloadIcon className="h-3 w-3" />
+                        Download
+                      </Button>
+                    </div>
                   )}
 
-                  {files.length > 0 ? (
-                    <ul className="space-y-1">
-                      {files.map((f) => (
-                        <li key={f} className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-mono text-muted-foreground truncate">{f}</span>
-                          <Button size="sm" variant="ghost" className="h-7 shrink-0 text-xs" asChild>
-                            <a href={`/pitches/${id}/edit?file=${encodeURIComponent(f)}`}>Edit</a>
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No files uploaded yet.</p>
-                  )}
+                  {/* Show ALL non-internal HTML files that aren't the entry file */}
+                  {(() => {
+                    const extraHtml = files.filter(
+                      (f) =>
+                        (f.toLowerCase().endsWith('.html') || f.toLowerCase().endsWith('.htm')) &&
+                        f !== pitch.entryFile &&
+                        !f.startsWith('.'),
+                    );
+                    if (extraHtml.length === 0) return null;
+                    return (
+                      <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-2">
+                        <p className="text-xs font-medium text-destructive">
+                          Extra HTML files — kan slettes:
+                        </p>
+                        {extraHtml.map((f) => (
+                          <div key={f} className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-mono text-muted-foreground truncate">{f}</span>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="h-6 text-xs px-2 shrink-0"
+                              onClick={async () => {
+                                const res = await fetch(
+                                  `/api/pitches/${id}/files/${encodeURIComponent(f)}`,
+                                  { method: 'DELETE' },
+                                );
+                                if (res.ok) {
+                                  setFiles((prev) => prev.filter((x) => x !== f));
+                                  toast.success(`Deleted ${f}`);
+                                } else {
+                                  toast.error('Delete failed');
+                                }
+                              }}
+                            >
+                              <TrashIcon className="h-3 w-3 mr-1" />
+                              Slet
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -647,6 +813,42 @@ export default function PitchDetailPage() {
             <Button onClick={sendInvite} disabled={!inviteEmail}>
               <MailIcon className="mr-1 h-4 w-4" />
               Send Invite
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save as Template Dialog */}
+      <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save as Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Template Name</Label>
+              <Input
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="e.g. Dark Investor Deck"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description (optional)</Label>
+              <Textarea
+                value={templateDescription}
+                onChange={(e) => setTemplateDescription(e.target.value)}
+                placeholder="Brief description of the template style…"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveAsTemplate} disabled={savingTemplate || !templateName.trim()}>
+              {savingTemplate ? 'Saving…' : 'Save Template'}
             </Button>
           </DialogFooter>
         </DialogContent>

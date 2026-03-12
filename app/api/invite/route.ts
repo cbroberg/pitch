@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getUserId } from '@/lib/get-user-id';
 import { createToken } from '@/lib/db/queries/access-tokens';
 import { getPitchById } from '@/lib/db/queries/pitches';
-import { generateToken } from '@/lib/tokens';
+import { generateToken, generatePIN } from '@/lib/tokens';
 import { sendInviteEmail } from '@/lib/email/resend';
 
 const schema = z.object({
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Pitch not found' }, { status: 404 });
     }
 
+    const pin = generatePIN();
     const token = createToken({
       pitchId: data.pitchId,
       token: generateToken(),
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
       email: data.email,
       label: `Invite: ${data.email}`,
       expiresAt: data.expiresAt ?? null,
+      pin,
     });
 
     const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
@@ -42,6 +44,7 @@ export async function POST(request: NextRequest) {
       viewUrl,
       message: data.message,
       expiresAt: data.expiresAt ? new Date(data.expiresAt * 1000) : null,
+      pin,
     });
 
     return NextResponse.json({ success: true, token });

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { CopyIcon, TrashIcon, ExternalLinkIcon, KeyIcon, PencilIcon, EyeIcon } from 'lucide-react';
+import { CopyIcon, TrashIcon, ExternalLinkIcon, KeyIcon, PencilIcon, EyeIcon, ShieldCheckIcon, RefreshCwIcon } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 interface TokenWithPitch {
@@ -16,6 +16,7 @@ interface TokenWithPitch {
   type: string;
   email: string | null;
   label: string | null;
+  pin: string | null;
   expiresAt: number | null;
   maxUses: number | null;
   useCount: number;
@@ -44,6 +45,19 @@ export default function AccessPage() {
       prev.map((t) => (t.id === id ? { ...t, isRevoked: true } : t)),
     );
     toast.success('Token revoked');
+  }
+
+  async function resendWithPin(id: string) {
+    const res = await fetch(`/api/tokens/${id}/resend-with-pin`, {
+      method: 'POST',
+    });
+    if (res.ok) {
+      toast.success('New invite with PIN sent');
+      load();
+    } else {
+      const data = await res.json();
+      toast.error(data.error || 'Failed to resend');
+    }
   }
 
   function copyLink(token: string) {
@@ -82,6 +96,7 @@ export default function AccessPage() {
                     baseUrl={baseUrl}
                     onRevoke={revoke}
                     onCopy={copyLink}
+                    onResendWithPin={resendWithPin}
                   />
                 ))}
               </div>
@@ -101,6 +116,7 @@ export default function AccessPage() {
                     baseUrl={baseUrl}
                     onRevoke={revoke}
                     onCopy={copyLink}
+                    onResendWithPin={resendWithPin}
                   />
                 ))}
               </div>
@@ -117,11 +133,13 @@ function TokenRow({
   baseUrl,
   onRevoke,
   onCopy,
+  onResendWithPin,
 }: {
   tok: TokenWithPitch;
   baseUrl: string;
   onRevoke: (id: string) => void;
   onCopy: (token: string) => void;
+  onResendWithPin: (id: string) => void;
 }) {
   const now = Math.floor(Date.now() / 1000);
   const expired = tok.expiresAt !== null && tok.expiresAt < now;
@@ -140,6 +158,12 @@ function TokenRow({
             >
               {tok.isRevoked ? 'Revoked' : expired ? 'Expired' : tok.type}
             </Badge>
+            {tok.pin && (
+              <Badge variant="outline" className="text-xs gap-1">
+                <ShieldCheckIcon className="h-3 w-3" />
+                PIN
+              </Badge>
+            )}
           </div>
           <p className="text-xs text-muted-foreground truncate">
             {tok.pitchTitle && (
@@ -160,6 +184,17 @@ function TokenRow({
         </div>
         {!tok.isRevoked && (
           <div className="flex items-center gap-1 shrink-0 ml-2">
+            {!tok.pin && tok.email && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                title="Revoke & resend with PIN"
+                onClick={() => onResendWithPin(tok.id)}
+              >
+                <RefreshCwIcon className="h-3.5 w-3.5" />
+              </Button>
+            )}
             <Button
               size="icon"
               variant="ghost"

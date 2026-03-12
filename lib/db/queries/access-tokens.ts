@@ -11,6 +11,7 @@ export function createToken(data: {
   label?: string | null;
   expiresAt?: number | null;
   maxUses?: number | null;
+  pin?: string | null;
 }) {
   return getDb().insert(accessTokens).values(data).returning().get();
 }
@@ -47,6 +48,7 @@ export function getAllTokens() {
       type: accessTokens.type,
       email: accessTokens.email,
       label: accessTokens.label,
+      pin: accessTokens.pin,
       expiresAt: accessTokens.expiresAt,
       maxUses: accessTokens.maxUses,
       useCount: accessTokens.useCount,

@@ -105,6 +105,16 @@ export function runMigrations() {
     db.exec(`ALTER TABLE users ADD COLUMN editor_font_size INTEGER NOT NULL DEFAULT 16`);
   }
 
+  // PIN columns for access tokens
+  const tokenCols = db.prepare(`PRAGMA table_info(access_tokens)`).all() as { name: string }[];
+  const tokenColNames = tokenCols.map((c) => c.name);
+  if (!tokenColNames.includes('pin')) {
+    db.exec(`ALTER TABLE access_tokens ADD COLUMN pin TEXT`);
+  }
+  if (!tokenColNames.includes('pin_attempts')) {
+    db.exec(`ALTER TABLE access_tokens ADD COLUMN pin_attempts INTEGER NOT NULL DEFAULT 0`);
+  }
+
   db.close();
   console.log('[pitch-vault] Migrations completed');
 }

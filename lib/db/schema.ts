@@ -63,6 +63,8 @@ export const accessTokens = sqliteTable('access_tokens', {
   label: text('label'),
   expiresAt: integer('expires_at'), // null = never
   maxUses: integer('max_uses'), // null = unlimited
+  pin: text('pin'), // 6-digit PIN, null = no PIN required
+  pinAttempts: integer('pin_attempts').notNull().default(0),
   useCount: integer('use_count').notNull().default(0),
   isRevoked: integer('is_revoked', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at').notNull().$defaultFn(now),

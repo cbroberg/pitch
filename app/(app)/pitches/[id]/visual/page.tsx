@@ -24,6 +24,8 @@ export default function VisualEditPage() {
   const pendingSaveRef = useRef(false);
   // Keep a ref to pitch so the message handler always sees the latest value
   const pitchRef = useRef<Pitch | null>(null);
+  // Ref so the message handler always has the latest originalHtml (not a stale closure)
+  const originalHtmlRef = useRef<string>('');
 
   // Load pitch metadata + HTML
   useEffect(() => {
@@ -39,6 +41,7 @@ export default function VisualEditPage() {
       if (!fileRes.ok) { toast.error('Could not load pitch HTML'); return; }
       const { content: html } = await fileRes.json();
       setOriginalHtml(html);
+      originalHtmlRef.current = html;
       setSrcDoc(injectWysiwyg(html));
     }
     load();
@@ -60,6 +63,7 @@ export default function VisualEditPage() {
       setTimeout(() => setSaved(false), 2500);
       setDirty(false);
       setOriginalHtml(html);
+      originalHtmlRef.current = html;
       setSrcDoc(injectWysiwyg(html));
       setReady(false);
     } catch {
@@ -76,6 +80,13 @@ export default function VisualEditPage() {
 
       if (e.data.type === 'wysiwygReady') {
         setReady(true);
+        // Send original HTML to iframe so it can apply edits cleanly
+        if (iframeRef.current?.contentWindow) {
+          iframeRef.current.contentWindow.postMessage(
+            { type: 'setOriginal', html: originalHtmlRef.current },
+            '*'
+          );
+        }
       }
 
       if (e.data.type === 'editingActive') {

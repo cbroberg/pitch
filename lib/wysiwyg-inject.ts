@@ -6,7 +6,8 @@
  * - Click on NON-text elements (navigation, buttons) → pass through so pitch can navigate
  * - While an element is active: all keyboard events are intercepted (no arrow-key slide change)
  * - ESC or click outside text → deactivate
- * - postMessage { type:'getHtml' } → stripped, clean HTML back to parent
+ * - postMessage { type:'getHtml' } → edits applied to ORIGINAL HTML (received from parent
+ *   via postMessage), preventing framework state pollution (active classes, inline styles, etc.)
  */
 export const WYSIWYG_SCRIPT = `
 <script id="__cc_wysiwyg">
@@ -50,6 +51,9 @@ export const WYSIWYG_SCRIPT = `
   var clrInput    = null;
   var emojiPicker = null;
   var savedRange  = null;
+  var originalHtml = null;          /* received from parent via postMessage */
+  var activatedInnerHTML = '';
+  var edits       = {};             /* keyed by element path → {innerHTML, fontSize, color} */
 
   /* ─── helpers ────────────────────────────────────────────────────────── */
   function skip(el) {
@@ -82,6 +86,47 @@ export const WYSIWYG_SCRIPT = `
     var m = String(rgb).match(/rgb\\\\((\\\\d+),\\\\s*(\\\\d+),\\\\s*(\\\\d+)\\\\)/);
     if (!m) return '#ffffff';
     return '#' + [m[1],m[2],m[3]].map(function(n){ return (+n).toString(16).padStart(2,'0'); }).join('');
+  }
+
+  /* ─── element path (for mapping edits to original HTML) ────────────── */
+  function getPath(el) {
+    var parts = [];
+    var node = el;
+    while (node && node !== document.body && node.parentElement) {
+      var idx = 0;
+      var sib = node.previousElementSibling;
+      while (sib) {
+        if (sib.tagName === node.tagName) idx++;
+        sib = sib.previousElementSibling;
+      }
+      parts.unshift(node.tagName + ':' + idx);
+      node = node.parentElement;
+    }
+    return parts.join('/');
+  }
+
+  function followPath(root, pathStr) {
+    var parts = pathStr.split('/');
+    var current = root;
+    for (var p = 0; p < parts.length; p++) {
+      var m = parts[p].match(/^([A-Z0-9]+):(\\\\d+)$/);
+      if (!m) return null;
+      var tag = m[1], idx = +m[2];
+      var count = 0;
+      var found = false;
+      for (var c = 0; c < current.children.length; c++) {
+        if (current.children[c].tagName === tag) {
+          if (count === idx) {
+            current = current.children[c];
+            found = true;
+            break;
+          }
+          count++;
+        }
+      }
+      if (!found) return null;
+    }
+    return current;
   }
 
   /* ─── emoji cursor handling ──────────────────────────────────────────── */
@@ -293,6 +338,7 @@ export const WYSIWYG_SCRIPT = `
     deactivate();
 
     activeEl = el;
+    activatedInnerHTML = el.innerHTML;
     el.contentEditable = 'true';
     el.setAttribute('data-cc-editing','1');
     el.style.outline = '2px solid #2563eb';
@@ -313,6 +359,20 @@ export const WYSIWYG_SCRIPT = `
   function deactivate() {
     closeEmojiPicker();
     if (!activeEl) return;
+
+    /* Record edit if anything changed */
+    var htmlChanged = activeEl.innerHTML !== activatedInnerHTML;
+    var hasFontSize = activeEl.style.fontSize !== '';
+    var hasColor    = activeEl.style.color !== '';
+    if (htmlChanged || hasFontSize || hasColor) {
+      var p = getPath(activeEl);
+      edits[p] = {
+        innerHTML: activeEl.innerHTML,
+        fontSize: activeEl.style.fontSize || '',
+        color: activeEl.style.color || '',
+      };
+    }
+
     activeEl.contentEditable = 'false';
     activeEl.removeAttribute('data-cc-editing');
     activeEl.style.outline = '';
@@ -397,25 +457,73 @@ export const WYSIWYG_SCRIPT = `
   /* ─── postMessage API ────────────────────────────────────────────────── */
   window.addEventListener('message', function(e) {
     if (!e.data) return;
+
+    /* Parent sends original HTML after wysiwygReady */
+    if (e.data.type === 'setOriginal') {
+      originalHtml = e.data.html;
+    }
+
     if (e.data.type === 'getHtml') {
       deactivate();
-      if (toolbar) toolbar.remove();
-      if (emojiPicker) emojiPicker.remove();
-      var s = document.getElementById('__cc_wysiwyg');
-      if (s) s.remove();
-      document.querySelectorAll('[contenteditable]').forEach(function(el){
-        el.removeAttribute('contenteditable');
-      });
-      document.querySelectorAll('[data-cc-editing]').forEach(function(el){
-        el.removeAttribute('data-cc-editing');
-      });
-      document.querySelectorAll('[data-cc-skip]').forEach(function(el){
-        el.removeAttribute('data-cc-skip');
-      });
-      window.parent.postMessage({
-        type: 'htmlContent',
-        html: '<!DOCTYPE html>\\n' + document.documentElement.outerHTML
-      }, '*');
+
+      var html;
+      var editKeys = Object.keys(edits);
+
+      if (originalHtml && editKeys.length > 0) {
+        /* Apply tracked edits to the ORIGINAL HTML via DOMParser.
+           This avoids baking in framework runtime state (active classes,
+           inline styles, injected DOM nodes, etc.). */
+        var parser = new DOMParser();
+        var origDoc = parser.parseFromString(originalHtml, 'text/html');
+
+        for (var i = 0; i < editKeys.length; i++) {
+          var edit = edits[editKeys[i]];
+          var target = followPath(origDoc.body, editKeys[i]);
+          if (target) {
+            target.innerHTML = edit.innerHTML;
+            if (edit.fontSize) target.style.fontSize = edit.fontSize;
+            if (edit.color) target.style.color = edit.color;
+          }
+        }
+
+        html = '<!DOCTYPE html>\\n' + origDoc.documentElement.outerHTML;
+      } else if (originalHtml) {
+        /* No edits were made — return original unchanged */
+        html = originalHtml;
+      } else {
+        /* Fallback: no original available — clean DOM and dump */
+        if (hoveredEl) {
+          hoveredEl.style.outline = '';
+          hoveredEl.style.cursor = '';
+          hoveredEl = null;
+        }
+        document.querySelectorAll('*').forEach(function(el) {
+          if (!el.style) return;
+          if (el.style.outline) el.style.outline = '';
+          if (el.style.outlineOffset) el.style.outlineOffset = '';
+          if (el.style.cursor === 'text') el.style.cursor = '';
+          var sv = el.getAttribute('style');
+          if (sv !== null && sv.replace(/[;\\\\s]/g, '') === '') {
+            el.removeAttribute('style');
+          }
+        });
+        if (toolbar) toolbar.remove();
+        if (emojiPicker) emojiPicker.remove();
+        var s = document.getElementById('__cc_wysiwyg');
+        if (s) s.remove();
+        document.querySelectorAll('[contenteditable]').forEach(function(el){
+          el.removeAttribute('contenteditable');
+        });
+        document.querySelectorAll('[data-cc-editing]').forEach(function(el){
+          el.removeAttribute('data-cc-editing');
+        });
+        document.querySelectorAll('[data-cc-skip]').forEach(function(el){
+          el.removeAttribute('data-cc-skip');
+        });
+        html = '<!DOCTYPE html>\\n' + document.documentElement.outerHTML;
+      }
+
+      window.parent.postMessage({ type: 'htmlContent', html: html }, '*');
     }
   });
 

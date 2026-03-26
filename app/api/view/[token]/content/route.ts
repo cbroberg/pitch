@@ -46,7 +46,7 @@ export async function GET(
     headers: {
       'Content-Type': mimeType,
       'X-Frame-Options': 'SAMEORIGIN',
-      'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;",
+      'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:;",
     },
   });
 }

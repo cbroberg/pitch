@@ -321,7 +321,7 @@
             <span>Månedligt abonnement</span>
             <span class="slider-val" id="monthlyVal">1.500 kr.</span>
           </div>
-          <input type="range" id="monthlySlider" min="500" max="5000" value="2500" step="100">
+          <input type="range" id="monthlySlider" min="2000" max="5000" value="2500" step="100">
         </div>
 
         <div class="slider-group">
@@ -329,7 +329,7 @@
             <span>Omsætningsdeling — fysiske produkter (webshop)</span>
             <span class="slider-val gold" id="revPhysVal">5%</span>
           </div>
-          <input type="range" id="revPhysSlider" class="gold-slider" min="0" max="15" value="5" step="0.5">
+          <input type="range" id="revPhysSlider" class="gold-slider" min="5" max="15" value="5" step="0.5">
         </div>
 
         <div class="slider-group" style="margin-bottom:0">
@@ -337,7 +337,7 @@
             <span>Omsætningsdeling — digitale ydelser</span>
             <span class="slider-val gold" id="revDigVal">0%</span>
           </div>
-          <input type="range" id="revDigSlider" class="gold-slider" min="0" max="40" value="30" step="1">
+          <input type="range" id="revDigSlider" class="gold-slider" min="30" max="40" value="30" step="1">
         </div>
       </div>
 
@@ -369,6 +369,7 @@
           <div class="roi-tab" data-months="12" onclick="setMonths(12)">12 mdr</div>
           <div class="roi-tab active" data-months="24" onclick="setMonths(24)">24 mdr</div>
           <div class="roi-tab" data-months="36" onclick="setMonths(36)">36 mdr</div>
+          <div class="roi-tab" data-months="48" onclick="setMonths(48)">48 mdr</div>
         </div>
 
         <div class="total-box" style="margin-bottom:16px">
@@ -402,7 +403,7 @@
           <span class="price-val" id="whDevHours">~150 timer</span>
         </div>
         <div class="price-row">
-          <span class="price-label">Alternativomkostning (500 kr./t)</span>
+          <span class="price-label">Alternativomkostning (800 kr./t)</span>
           <span class="price-val" id="whDevCost">75.000 kr.</span>
         </div>
         <div class="price-row">
@@ -462,8 +463,8 @@
 
 <script>
 (function() {
-  var WH_DEV_HOURS    = 200;
-  var WH_HOURLY_RATE  = 500;
+  var WH_DEV_HOURS    = 120;
+  var WH_HOURLY_RATE  = 800;
   var WH_INFRA_MONTH  = 430;
   var WH_MAINT_LOW    = 1;
   var WH_MAINT_HIGH   = 2;

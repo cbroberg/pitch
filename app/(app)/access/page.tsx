@@ -186,53 +186,49 @@ function TokenRow({
           <div className="flex items-center gap-1 shrink-0 ml-2">
             {!tok.pin && tok.email && (
               <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7"
-                title="Revoke & resend with PIN"
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1"
+                title="Revoke current link og send ny invite med PIN-kode"
                 onClick={() => onResendWithPin(tok.id)}
               >
-                <RefreshCwIcon className="h-3.5 w-3.5" />
+                <RefreshCwIcon className="h-3 w-3" />
+                Gensend med PIN
               </Button>
             )}
             <Button
               size="icon"
               variant="ghost"
               className="h-7 w-7"
+              title="Kopiér link"
               onClick={() => onCopy(tok.token)}
             >
               <CopyIcon className="h-3.5 w-3.5" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
-              <a
-                href={`/view/${tok.token}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+            <Button size="icon" variant="ghost" className="h-7 w-7" title="Åbn link" asChild>
+              <a href={`/view/${tok.token}`} target="_blank" rel="noopener noreferrer">
                 <ExternalLinkIcon className="h-3.5 w-3.5" />
               </a>
             </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
-              <a
-                href={`/preview/${tok.pitchId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+            <Button size="icon" variant="ghost" className="h-7 w-7" title="Preview pitch" asChild>
+              <a href={`/preview/${tok.pitchId}`} target="_blank" rel="noopener noreferrer">
                 <EyeIcon className="h-3.5 w-3.5" />
               </a>
             </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
+            <Button size="icon" variant="ghost" className="h-7 w-7" title="Rediger pitch" asChild>
               <Link href={`/pitches/${tok.pitchId}/edit`}>
                 <PencilIcon className="h-3.5 w-3.5" />
               </Link>
             </Button>
             <Button
-              size="icon"
+              size="sm"
               variant="ghost"
-              className="h-7 w-7 text-destructive"
+              className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
+              title="Revoke token"
               onClick={() => onRevoke(tok.id)}
             >
-              <TrashIcon className="h-3.5 w-3.5" />
+              <TrashIcon className="h-3 w-3" />
+              Revoke
             </Button>
           </div>
         )}

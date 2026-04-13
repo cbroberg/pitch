@@ -1,16 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon } from 'lucide-react';
+import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PitchThumbnail } from '@/components/pitch-thumbnail';
 import { formatDistanceToNow } from 'date-fns';
@@ -22,6 +23,8 @@ export default function PitchesPage() {
   const [pitches, setPitches] = useState<Pitch[] | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [thumbKey, setThumbKey] = useState(0);
+  const [query, setQuery] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
 
   async function generateAllThumbnails() {
     const res = await fetch('/api/pitches/thumbnails-batch', { method: 'POST' });
@@ -43,16 +46,70 @@ export default function PitchesPage() {
       .then(setPitches);
   }, []);
 
+  // Cmd+K / Ctrl+K opens search
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+      if (e.key === 'Escape' && document.activeElement === searchRef.current) {
+        setQuery('');
+        searchRef.current?.blur();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   function toggleView(mode: ViewMode) {
     setViewMode(mode);
     localStorage.setItem('pitches-view-mode', mode);
   }
 
+  const filtered = pitches
+    ? query.trim()
+      ? pitches.filter((p) => {
+          const q = query.toLowerCase();
+          return (
+            p.title.toLowerCase().includes(q) ||
+            (p.description ?? '').toLowerCase().includes(q)
+          );
+        })
+      : pitches
+    : null;
+
   return (
     <div className="[zoom:0.9]">
       <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4">
         <SidebarTrigger />
-        <h1 className="text-base font-semibold">Pitches</h1>
+        <h1 className="text-base font-semibold shrink-0">Pitches</h1>
+
+        {/* Search */}
+        <div className="relative flex-1 max-w-sm ml-2">
+          <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            ref={searchRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Søg i pitches…"
+            className="h-8 pl-8 pr-16 text-sm"
+          />
+          {query ? (
+            <button
+              onClick={() => { setQuery(''); searchRef.current?.focus(); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <XIcon className="h-3.5 w-3.5" />
+            </button>
+          ) : (
+            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              <span className="text-[12px] leading-none">⌘</span>K
+            </kbd>
+          )}
+        </div>
+
         <div className="ml-auto flex items-center gap-2">
           <div className="flex items-center rounded-md border p-0.5">
             <Button
@@ -88,7 +145,7 @@ export default function PitchesPage() {
       </header>
       <main className="flex-1 p-4 md:p-6">
         <div className="max-w-5xl">
-          {!pitches ? (
+          {!filtered ? (
             viewMode === 'grid' ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map((i) => (
@@ -102,22 +159,30 @@ export default function PitchesPage() {
                 ))}
               </div>
             )
-          ) : pitches.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <PresentationIcon className="mb-3 h-12 w-12 text-muted-foreground" />
-                <p className="text-lg font-medium">No pitches yet</p>
-                <p className="text-muted-foreground mb-4">
-                  Upload your first pitch to get started.
-                </p>
-                <Button asChild>
-                  <Link href="/pitches/new">Upload Pitch</Link>
-                </Button>
+                {query ? (
+                  <>
+                    <p className="text-lg font-medium">Ingen resultater</p>
+                    <p className="text-muted-foreground mb-4">Ingen pitches matcher &ldquo;{query}&rdquo;</p>
+                    <Button variant="outline" onClick={() => setQuery('')}>Ryd søgning</Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg font-medium">No pitches yet</p>
+                    <p className="text-muted-foreground mb-4">Upload your first pitch to get started.</p>
+                    <Button asChild>
+                      <Link href="/pitches/new">Upload Pitch</Link>
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           ) : viewMode === 'grid' ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {pitches.map((pitch) => (
+              {filtered.map((pitch) => (
                 <Link key={pitch.id} href={`/pitches/${pitch.id}`}>
                   <Card className="h-full transition-colors hover:bg-muted/50 cursor-pointer overflow-hidden">
                     <PitchThumbnail pitchId={pitch.id} fileType={pitch.fileType} className="w-full aspect-video object-cover object-top" cacheBust={thumbKey} />
@@ -185,7 +250,7 @@ export default function PitchesPage() {
             </div>
           ) : (
             <div className="flex flex-col divide-y rounded-lg border">
-              {pitches.map((pitch) => (
+              {filtered.map((pitch) => (
                 <Link
                   key={pitch.id}
                   href={`/pitches/${pitch.id}`}

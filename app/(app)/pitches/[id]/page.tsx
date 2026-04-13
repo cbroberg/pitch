@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
+  ArrowLeftIcon,
   ExternalLinkIcon,
   KeyIcon,
   MousePointer2Icon,
@@ -346,6 +347,11 @@ export default function PitchDetailPage() {
     <>
       <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4">
         <SidebarTrigger />
+        <Button asChild variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+          <Link href="/pitches">
+            <ArrowLeftIcon className="h-4 w-4" />
+          </Link>
+        </Button>
         <h1 className="text-base font-semibold truncate">{pitch.title}</h1>
         <Badge
           variant={pitch.isPublished ? 'default' : 'secondary'}
@@ -663,19 +669,21 @@ export default function PitchDetailPage() {
                             <>
                               {!tok.pin && tok.email && (
                                 <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7"
-                                  title="Revoke & resend with PIN"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1"
+                                  title="Revoke current link og send ny invite med PIN-kode"
                                   onClick={() => resendWithPin(tok.id)}
                                 >
-                                  <RefreshCwIcon className="h-3.5 w-3.5" />
+                                  <RefreshCwIcon className="h-3 w-3" />
+                                  Gensend med PIN
                                 </Button>
                               )}
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 className="h-7 w-7"
+                                title="Kopiér link"
                                 onClick={() => copyLink(tok.token)}
                               >
                                 <CopyIcon className="h-3.5 w-3.5" />
@@ -684,6 +692,7 @@ export default function PitchDetailPage() {
                                 size="icon"
                                 variant="ghost"
                                 className="h-7 w-7"
+                                title="Åbn link"
                                 asChild
                               >
                                 <a
@@ -695,12 +704,13 @@ export default function PitchDetailPage() {
                                 </a>
                               </Button>
                               <Button
-                                size="icon"
+                                size="sm"
                                 variant="ghost"
-                                className="h-7 w-7 text-destructive"
+                                className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
                                 onClick={() => revokeToken(tok.id)}
                               >
-                                <TrashIcon className="h-3.5 w-3.5" />
+                                <TrashIcon className="h-3 w-3" />
+                                Revoke
                               </Button>
                             </>
                           )}

@@ -46,13 +46,16 @@ export default function UsersPage() {
   const [submitting, setSubmitting] = useState(false);
 
   async function load() {
-    const res = await fetch('/api/users');
-    if (res.ok) {
-      const data = await res.json();
-      setUsers(data.users);
-      setInvitations(data.invitations);
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data.users);
+        setInvitations(data.invitations);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   useEffect(() => {

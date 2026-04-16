@@ -96,6 +96,21 @@ export function runMigrations() {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS webauthn_credentials (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      public_key TEXT NOT NULL,
+      counter INTEGER NOT NULL DEFAULT 0,
+      transports TEXT,
+      device_type TEXT,
+      backed_up INTEGER NOT NULL DEFAULT 0,
+      name TEXT NOT NULL DEFAULT 'Passkey',
+      created_at INTEGER NOT NULL,
+      last_used_at INTEGER
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_webauthn_user_id ON webauthn_credentials(user_id);
   `);
 
   // Additive column migrations

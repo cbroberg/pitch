@@ -94,6 +94,21 @@ export const templates = sqliteTable('templates', {
   updatedAt: integer('updated_at').notNull().$defaultFn(now),
 });
 
+export const webauthnCredentials = sqliteTable('webauthn_credentials', {
+  id: text('id').primaryKey(), // credential ID (base64url)
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  publicKey: text('public_key').notNull(), // base64url-encoded COSE public key
+  counter: integer('counter').notNull().default(0),
+  transports: text('transports'), // JSON array
+  deviceType: text('device_type'),
+  backedUp: integer('backed_up', { mode: 'boolean' }).notNull().default(false),
+  name: text('name').notNull().default('Passkey'),
+  createdAt: integer('created_at').notNull().$defaultFn(now),
+  lastUsedAt: integer('last_used_at'),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
@@ -104,3 +119,5 @@ export type AccessToken = typeof accessTokens.$inferSelect;
 export type ViewEvent = typeof viewEvents.$inferSelect;
 export type Template = typeof templates.$inferSelect;
 export type NewTemplate = typeof templates.$inferInsert;
+export type WebauthnCredential = typeof webauthnCredentials.$inferSelect;
+export type NewWebauthnCredential = typeof webauthnCredentials.$inferInsert;

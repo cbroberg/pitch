@@ -8,6 +8,7 @@ const PROTECTED_PATHS = [
   '/pitches',
   '/folders',
   '/access',
+  '/users',
   '/settings',
   '/preview',
 ];
@@ -35,6 +36,7 @@ export const config = {
     '/pitches/:path*',
     '/folders/:path*',
     '/access/:path*',
+    '/users/:path*',
     '/settings/:path*',
     '/preview/:path*',
   ],

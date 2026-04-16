@@ -7,6 +7,7 @@ import {
   PresentationIcon,
   FolderIcon,
   KeyIcon,
+  UsersIcon,
   SettingsIcon,
   HelpCircleIcon,
   LayoutTemplateIcon,
@@ -23,6 +24,7 @@ const navItems = [
   { title: 'Templates', url: '/templates', icon: LayoutTemplateIcon },
   { title: 'Folders', url: '/folders', icon: FolderIcon },
   { title: 'Access Tokens', url: '/access', icon: KeyIcon },
+  { title: 'Users', url: '/users', icon: UsersIcon },
   { title: 'Settings', url: '/settings', icon: SettingsIcon },
   { title: 'Help', url: '/help', icon: HelpCircleIcon },
 ];

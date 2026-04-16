@@ -85,6 +85,20 @@ export const viewEvents = sqliteTable('view_events', {
   createdAt: integer('created_at').notNull().$defaultFn(now),
 });
 
+export const userInvitations = sqliteTable('user_invitations', {
+  id: text('id').primaryKey().$defaultFn(() => nanoid()),
+  token: text('token').notNull().unique(),
+  email: text('email').notNull(),
+  name: text('name').notNull(),
+  role: text('role').notNull().default('super_admin'),
+  invitedBy: text('invited_by').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+  expiresAt: integer('expires_at').notNull(),
+  acceptedAt: integer('accepted_at'),
+  createdAt: integer('created_at').notNull().$defaultFn(now),
+});
+
 export const templates = sqliteTable('templates', {
   id: text('id').primaryKey().$defaultFn(() => nanoid()),
   name: text('name').notNull(),
@@ -119,5 +133,7 @@ export type AccessToken = typeof accessTokens.$inferSelect;
 export type ViewEvent = typeof viewEvents.$inferSelect;
 export type Template = typeof templates.$inferSelect;
 export type NewTemplate = typeof templates.$inferInsert;
+export type UserInvitation = typeof userInvitations.$inferSelect;
+export type NewUserInvitation = typeof userInvitations.$inferInsert;
 export type WebauthnCredential = typeof webauthnCredentials.$inferSelect;
 export type NewWebauthnCredential = typeof webauthnCredentials.$inferInsert;

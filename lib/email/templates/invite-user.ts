@@ -1,0 +1,66 @@
+import { format } from 'date-fns';
+
+export function buildUserInviteEmail(params: {
+  inviteeName: string;
+  acceptUrl: string;
+  invitedByName?: string;
+  expiresAt: Date;
+}): { html: string; text: string } {
+  const { inviteeName, acceptUrl, invitedByName, expiresAt } = params;
+  const baseUrl = process.env.BASE_URL || 'https://pitch-vault.fly.dev';
+
+  const invitedByLine = invitedByName
+    ? `<p style="margin: 0 0 16px; color: #374151;">${invitedByName} har inviteret dig som bruger af Pitch Vault.</p>`
+    : `<p style="margin: 0 0 16px; color: #374151;">Du er inviteret som bruger af Pitch Vault.</p>`;
+
+  const invitedByText = invitedByName
+    ? `${invitedByName} har inviteret dig som bruger af Pitch Vault.`
+    : 'Du er inviteret som bruger af Pitch Vault.';
+
+  const expiryText = `Linket udløber ${format(expiresAt, 'PPP')}.`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 0; background: #f9fafb;">
+  <div style="max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <div style="background: #0d0f1a; padding: 28px 32px; text-align: center;">
+      <img src="${baseUrl}/pitch-vault-logo-email.png" alt="Pitch Vault" width="300" height="122" style="height: 60px; width: auto; display: inline-block;" />
+    </div>
+    <div style="padding: 32px;">
+      <h2 style="margin: 0 0 16px; color: #111827; font-size: 20px;">Hej ${inviteeName},</h2>
+      ${invitedByLine}
+      <p style="margin: 0 0 16px; color: #374151;">Klik på knappen nedenfor for at oprette dit password og aktivere din konto.</p>
+      <div style="margin: 24px 0;">
+        <a href="${acceptUrl}" style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600;">Aktivér konto</a>
+      </div>
+      <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">${expiryText}</p>
+      <p style="margin: 0; color: #6b7280; font-size: 14px;">Eller kopiér linket: <a href="${acceptUrl}" style="color: #2563eb;">${acceptUrl}</a></p>
+    </div>
+    <div style="background: #f3f4f6; padding: 16px; text-align: center;">
+      <p style="margin: 0; color: #9ca3af; font-size: 12px;">Pitch Vault by Broberg</p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  const text = [
+    `Hej ${inviteeName},`,
+    '',
+    invitedByText,
+    '',
+    'Aktivér din konto her:',
+    acceptUrl,
+    '',
+    expiryText,
+    '',
+    '— Pitch Vault by Broberg',
+  ].join('\n');
+
+  return { html, text };
+}

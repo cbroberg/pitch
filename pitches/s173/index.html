@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>broberg.ai × syttensyvogtres® — AI som Forstærker</title>
+  <link rel="icon" type="image/svg+xml" href="favicon-dark.svg" media="(prefers-color-scheme: dark)">
+  <link rel="icon" type="image/svg+xml" href="favicon-light.svg" media="(prefers-color-scheme: light)">
+  <link rel="icon" type="image/svg+xml" href="favicon-dark.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blue:       #00b2ff;
+      --blue-dark:  #008fd4;
+      --blue-light: #40c8ff;
+      --blue-glow:  rgba(0,178,255,0.13);
+      --blue-glow2: rgba(0,178,255,0.07);
+      --dark:       #23282f;
+      --dark2:      #1c2027;
+      --dark3:      #181c22;
+      --card:       rgba(255,255,255,0.04);
+      --card-border:rgba(255,255,255,0.07);
+      --light:      #f0f4f8;
+      --muted:      rgba(240,244,248,0.5);
+      --orange:     #F3522C;
+      --font-display:'Cormorant Garamond',Georgia,serif;
+      --font-body:   'DM Sans',-apple-system,sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{zoom:1.25}
+    html,body{height:100%;font-family:var(--font-body);background:var(--dark);color:var(--light);overflow:hidden;-webkit-font-smoothing:antialiased}
+    #deck{width:100%;height:100vh;position:relative;overflow:hidden}
+
+    .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;padding:96px 80px 120px;opacity:0;visibility:hidden;transform:translateX(60px);transition:opacity .5s cubic-bezier(.4,0,.2,1),transform .5s cubic-bezier(.4,0,.2,1),visibility 0s linear .5s;pointer-events:none;overflow-y:auto}
+    .slide.active{opacity:1;visibility:visible;transform:translateX(0);pointer-events:all;transition:opacity .5s cubic-bezier(.4,0,.2,1),transform .5s cubic-bezier(.4,0,.2,1),visibility 0s linear 0s}
+    .slide.exit{opacity:0;visibility:visible;transform:translateX(-60px);transition:opacity .5s cubic-bezier(.4,0,.2,1),transform .5s cubic-bezier(.4,0,.2,1),visibility 0s linear .5s}
+    .slide::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(ellipse 55% 45% at 85% 15%,rgba(0,178,255,.06) 0%,transparent 65%),radial-gradient(ellipse 35% 55% at 5% 85%,rgba(0,178,255,.03) 0%,transparent 55%)}
+
+    /* ── Nav ── */
+    #nav{position:fixed;bottom:34px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;z-index:100;background:rgba(24,28,34,.9);backdrop-filter:blur(16px);border:1px solid var(--card-border);border-radius:100px;padding:10px 22px}
+    .nav-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:color .2s,background .2s}
+    .nav-btn:hover{color:var(--blue);background:var(--blue-glow)}
+    .nav-btn:disabled{opacity:.2;pointer-events:none}
+    #dots{display:flex;gap:8px;align-items:center}
+    .dot{width:6px;height:6px;border-radius:50%;background:var(--muted);cursor:pointer;transition:all .3s}
+    .dot.active{background:var(--blue);width:22px;border-radius:3px}
+    #slide-counter{font-size:12px;color:var(--muted);min-width:36px;text-align:center;font-variant-numeric:tabular-nums}
+
+    /* ── Header ── */
+    #header{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 38px;display:flex;align-items:center;justify-content:space-between;background:rgba(35,40,47,.75);backdrop-filter:blur(14px);border-bottom:1px solid var(--card-border)}
+    .header-left{display:flex;align-items:center;gap:18px}
+    .header-logo{font-family:var(--font-body);font-size:20px;font-weight:600;color:var(--light);letter-spacing:-.03em;display:flex;align-items:center;gap:1px;cursor:pointer}
+    .header-logo .ai{color:var(--orange)}
+    .header-sep{width:1px;height:26px;background:var(--card-border)}
+    .header-sm{font-family:var(--font-display);font-size:18px;font-weight:600;color:var(--light);letter-spacing:.04em;display:flex;align-items:center;gap:6px}
+    .header-sm .x{color:var(--blue)}
+    #slide-label{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+    /* ── Type ── */
+    .eyebrow{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);margin-bottom:20px}
+    h1{font-family:var(--font-display);font-size:clamp(38px,5.2vw,70px);font-weight:500;line-height:1.05;letter-spacing:-.01em}
+    h1 em,h2 em{font-style:italic;color:var(--blue)}
+    h2{font-family:var(--font-display);font-size:clamp(28px,3.6vw,50px);font-weight:500;line-height:1.1;letter-spacing:-.01em}
+    h3{font-family:var(--font-body);font-size:17px;font-weight:600;line-height:1.3}
+    .lead{font-size:clamp(14px,1.5vw,17px);line-height:1.75;color:var(--muted);max-width:620px}
+    .blue{color:var(--blue)} .light{color:var(--light)} .orange{color:var(--orange)}
+    strong{font-weight:600;color:var(--light)}
+    .card h3,.card h3 *{font-family:var(--font-body);font-weight:600}
+
+    /* ── Cards ── */
+    .card{background:var(--card);border:1px solid var(--card-border);border-radius:16px;padding:24px 28px}
+    .card-blue{background:var(--blue-glow2);border-color:rgba(0,178,255,.22)}
+    .card-orange{background:rgba(243,82,44,.06);border-color:rgba(243,82,44,.22)}
+
+    /* ── Grid ── */
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+    .w-full{width:100%} .max-w{max-width:900px} .text-center{text-align:center}
+
+    /* ── Tags ── */
+    .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .tag{background:var(--blue-glow);border:1px solid rgba(0,178,255,.28);color:var(--blue-light);border-radius:100px;padding:4px 12px;font-size:12px;font-weight:500}
+    .tag-dark{background:rgba(255,255,255,.05);border-color:var(--card-border);color:var(--muted)}
+
+    /* ── Icon box ── */
+    .icon-box{width:48px;height:48px;background:var(--blue-glow);border:1px solid rgba(0,178,255,.28);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;margin-bottom:14px}
+
+    /* ── Divider ── */
+    .divider{width:48px;height:2px;background:var(--blue);border-radius:2px;margin:20px 0}
+    .divider-center{margin:20px auto}
+
+    /* ── Stats ── */
+    .stat{text-align:center}
+    .stat-num{font-family:var(--font-display);font-size:48px;font-weight:600;color:var(--blue);letter-spacing:-.02em;line-height:1}
+    .stat-label{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+
+    /* ── Flow ── */
+    .flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .flow-step{background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:9px 16px;font-size:13px;font-weight:500;white-space:nowrap}
+    .flow-arrow{color:var(--blue);font-size:16px;flex-shrink:0}
+
+    /* ── Table ── */
+    .ctable{width:100%;border-collapse:collapse}
+    .ctable th,.ctable td{padding:10px 15px;font-size:13px;border-bottom:1px solid var(--card-border);vertical-align:middle;white-space:nowrap}
+    .ctable th{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--card-border)}
+    .ctable td:first-child,.ctable th:first-child{color:var(--muted)}
+    .ctable td:nth-child(2),.ctable th:nth-child(2){color:#e07070;background:rgba(220,80,80,.05)}
+    .ctable td:nth-child(3),.ctable th:nth-child(3){color:var(--blue-light);background:var(--blue-glow2)}
+
+    /* ── Number list ── */
+    .num-item{display:flex;gap:16px;align-items:flex-start;margin-bottom:18px}
+    .num{font-family:var(--font-display);font-size:34px;font-weight:600;color:var(--blue);line-height:1;min-width:42px}
+
+    /* ── Quote ── */
+    .quote{border-left:3px solid var(--blue);padding-left:20px;font-family:var(--font-display);font-size:19px;font-style:italic;color:var(--light);line-height:1.5}
+
+    /* ── CTA ── */
+    .btn{display:inline-flex;align-items:center;gap:10px;background:var(--blue);color:var(--dark);border:none;border-radius:100px;padding:13px 30px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s,transform .15s;text-decoration:none}
+    .btn:hover{background:var(--blue-light);transform:translateY(-1px)}
+    .btn-outline{background:transparent;color:var(--blue);border:1px solid rgba(0,178,255,.4)}
+    .btn-outline:hover{background:var(--blue-glow);transform:translateY(-1px)}
+    .btn-orange{background:var(--orange);color:#fff}
+    .btn-orange:hover{background:#e8441e}
+  </style>
+</head>
+<body>
+
+<header id="header">
+  <div class="header-left">
+    <div class="header-logo" onclick="go(-cur)" title="Gå til forsiden"><span>broberg</span><span class="ai">.ai</span></div>
+    <div class="header-sep"></div>
+    <div class="header-sm"><span class="x">×</span> syttensyvogtres®</div>
+  </div>
+  <div id="slide-label">AI som Forstærker</div>
+</header>
+
+<div id="deck">
+
+  <!-- ══════════ 1 HERO ══════════ -->
+  <section class="slide active" data-label="Introduktion">
+    <div class="max-w w-full" style="margin-top:24px">
+      <div class="eyebrow">broberg.ai × syttensyvogtres® · Aalborg 2026</div>
+      <h1>Ikke et bureau.<br>En <em>teknologisk forstærker</em><br>for det bedste bureau.</h1>
+      <div class="divider" style="margin-top:28px"></div>
+      <p class="lead" style="max-width:580px">
+        Et møde om hvad der sker, når AI-native platforme møder Nordjyllands
+        stærkeste kommunikationsbureau — og hvad det konkret kan betyde for jeres klienter.
+      </p>
+      <div style="margin-top:44px;display:flex;gap:44px">
+        <div class="stat"><div class="stat-num">30+</div><div class="stat-label">år i digital<br>platformsudvikling</div></div>
+        <div class="stat"><div class="stat-num">1.000+</div><div class="stat-label">websites og<br>platforme leveret</div></div>
+        <div class="stat"><div class="stat-num">64</div><div class="stat-label">AI-værktøjer i<br>CMS-platformen</div></div>
+        <div class="stat"><div class="stat-num">3</div><div class="stat-label">AI-native platforme<br>i produktion</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 2 HVEM ══════════ -->
+  <section class="slide" data-label="Hvem er jeg">
+    <div class="max-w w-full" style="margin-top:16px">
+      <div class="eyebrow">Hvem er jeg</div>
+      <h2>Softwarearkitekt.<br><em>Digital pioneer. AI-builder.</em></h2>
+      <div class="divider" style="margin-top:20px"></div>
+      <div class="grid-2" style="margin-top:28px;gap:22px;align-items:start">
+        <div>
+          <p class="lead" style="font-size:14px">
+            Jeg er <strong>Christian Broberg</strong> — grundlagde WebHouse ApS i Aalborg i 1995, da ingen vidste hvad en hjemmeside var.
+            Lige siden har jeg bygget digitale platforme for klienter på 5 kontinenter — inkl. FIA, Ole Lynggaard Copenhagen,
+            Lundbeck, Grundfos, COWI, Cheminova/FMC og 40+ danske kommuner.
+          </p>
+          <p class="lead" style="font-size:14px;margin-top:14px">
+            I dag bygger jeg AI-native platforme: et CMS der skriver sit eget indhold,
+            en videnmotor der kompilerer ekspertise, og et orkestrationssystem der styrer 15+ AI-agenter simultant.
+          </p>
+          <div class="tags" style="margin-top:18px">
+            <span class="tag">MCP-servere</span>
+            <span class="tag">Agent Swarm Management</span>
+            <span class="tag">Knowledge Management</span>
+            <span class="tag">Second Brain</span>
+            <span class="tag">Tilpassede AI chat platforme</span>
+            <span class="tag">Machine Learning</span>
+            <span class="tag">Text-to-Speech</span>
+            <span class="tag">Vision</span>
+            <span class="tag">CI/CD</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card card-blue">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 335.2 338.48" height="24" width="24" style="flex-shrink:0">
+                <path fill="#2a2a3e" d="M167.6,0C87.6,0,7.6,48,7.6,144s48,169.6,112,192c32,9.6,48-9.6,48-41.6"/>
+                <path fill="#212135" d="M7.6,144c-16,48-6.4,118.4,25.6,156.8,25.6,25.6,64,38.4,86.4,35.2"/>
+                <path fill="#f7bb2e" d="M167.6,0c80,0,160,48,160,144s-48,169.6-112,192c-32,9.6-48-9.6-48-41.6"/>
+                <path fill="#d9a11a" d="M327.6,144c16,48,6.4,118.4-25.6,156.8-25.6,25.6-64,38.4-86.4,35.2"/>
+                <path fill="#fff" d="M52.4,160c38.4-59.73,76.8-89.6,115.2-89.6s76.8,29.87,115.2,89.6c-38.4,59.73-76.8,89.6-115.2,89.6s-76.8-29.87-115.2-89.6Z"/>
+                <circle fill="#f7bb2e" cx="167.6" cy="160" r="48"/>
+                <circle fill="#0d0d0d" cx="167.6" cy="160" r="20.8"/>
+                <circle fill="rgba(255,255,255,0.9)" cx="180.4" cy="147.2" r="8.96"/>
+                <circle fill="rgba(255,255,255,0.3)" cx="158" cy="171.2" r="4.16"/>
+              </svg>
+              <h3>cms</h3>
+            </div>
+            <p style="font-size:13px;color:var(--muted)">@webhouse/cms er et enterprise-level open source AI-native CMS med 64 værktøjer. Indhold skrives, oversættes og optimeres automatisk.</p>
+          </div>
+          <div class="card card-blue">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="22" height="22" style="flex-shrink:0">
+                <circle cx="16" cy="16" r="13" fill="none" stroke="#FAF9F5" stroke-width="2.5"/>
+                <circle cx="16" cy="16" r="8.5" fill="none" stroke="#e8a87c" stroke-width="1" opacity="0.7"/>
+                <circle cx="16" cy="16" r="3.8" fill="#e8a87c"/>
+              </svg>
+              <h3>trail</h3>
+            </div>
+            <p style="font-size:13px;color:var(--muted)">Din second brain — kompilerer brand-viden til en levende vidensgraf. Grundlag for AI der altid taler klientens stemme.</p>
+          </div>
+          <div class="card card-blue">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="26" height="26" style="flex-shrink:0;opacity:.9">
+                <path d="M16 64 C16 64, 40 24, 64 24 C88 24, 112 64, 112 64 C112 64, 88 104, 64 104 C40 104, 16 64, 16 64 Z" fill="none" stroke="#F5F6FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M52 48 L48 48 C45 48, 44 50, 44 52 L44 58 C44 60, 42 62, 40 64 C42 66, 44 68, 44 70 L44 76 C44 78, 45 80, 48 80 L52 80" fill="none" stroke="#F5F6FA" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M76 48 L80 48 C83 48, 84 50, 84 52 L84 58 C84 60, 86 62, 88 64 C86 66, 84 68, 84 70 L84 76 C84 78, 83 80, 80 80 L76 80" fill="none" stroke="#F5F6FA" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <h3>buddy</h3>
+            </div>
+            <p style="font-size:13px;color:var(--muted)">Orkestrerer 15+ AI-sessioner på tværs af repos. Kodegennemgang, peer-koordinering, kvalitetssikring i realtid.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 3 MARKEDET ══════════ -->
+  <section class="slide" data-label="Markedet">
+    <div class="max-w w-full" style="margin-top:20px">
+      <div class="eyebrow">Hvad der sker lige nu</div>
+      <h2>AI forandrer marketing.<br><em>Bureauerne der vinder,<br>er dem der handler nu.</em></h2>
+      <div class="divider" style="margin-top:20px"></div>
+      <div class="grid-3" style="margin-top:28px">
+        <div class="card">
+          <div class="icon-box">⚡</div>
+          <h3 style="margin-bottom:10px">Indhold × 10</h3>
+          <p style="font-size:13px;color:var(--muted);line-height:1.65">AI kan generere, oversætte og optimere indhold på sekunder. Bureauer der bruger dette skalerer output uden at skalere headcount.</p>
+        </div>
+        <div class="card card-blue">
+          <div class="icon-box">🎯</div>
+          <h3 style="margin-bottom:10px">Brand intelligence i skala</h3>
+          <p style="font-size:13px;color:var(--muted);line-height:1.65">Med 2800+ klienter er konsistent brand voice en kæmpe udfordring. AI der kender hvert brand indefra løser det — automatisk.</p>
+        </div>
+        <div class="card">
+          <div class="icon-box">🔍</div>
+          <h3 style="margin-bottom:10px">GEO — udover SEO</h3>
+          <p style="font-size:13px;color:var(--muted);line-height:1.65">ChatGPT, Perplexity og Gemini vokser som søgekanaler. "Generative Engine Optimization" er den nye SEO — og jeres klienter er ikke klar.</p>
+        </div>
+      </div>
+      <div class="card" style="margin-top:20px;border-color:rgba(0,178,255,.3)">
+        <div class="quote" style="font-size:17px">
+          "Det eneste bureau du behøver klarer nu 10× mere for den samme investering —
+          hvis AI-infrastrukturen er på plads."
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 4 TRAIL KONCEPT ══════════ -->
+  <section class="slide" data-label="trail — Knowledge Infrastructure">
+    <div class="max-w w-full" style="margin-top:12px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="38" height="38" style="flex-shrink:0">
+          <circle cx="16" cy="16" r="13" fill="none" stroke="#FAF9F5" stroke-width="2.5"/>
+          <circle cx="16" cy="16" r="8.5" fill="none" stroke="#e8a87c" stroke-width="1" opacity="0.7"/>
+          <circle cx="16" cy="16" r="3.8" fill="#e8a87c"/>
+        </svg>
+        <div>
+          <div class="eyebrow" style="margin-bottom:4px">trailmem.com — Brand Intelligence for bureauer</div>
+          <h2 style="font-size:clamp(28px,3.4vw,48px)">AI der kender<br>hvert brand <em>indefra.</em></h2>
+        </div>
+      </div>
+      <div class="divider" style="margin-top:16px"></div>
+      <div class="grid-2" style="margin-top:22px;gap:22px;align-items:start">
+        <div>
+          <p class="lead" style="font-size:14px">
+            Trail kompilerer en klients materiale — briefings, brand guides, eksisterende content, kampagner, kundeindsigter —
+            til en levende <strong>brand intelligence base</strong>.
+          </p>
+          <p class="lead" style="font-size:14px;margin-top:12px">
+            Resultatet: AI der skriver i klientens stemme, med klientens fakta, i overensstemmelse
+            med klientens tone of voice. Altid. Ikke kun når du husker at fortælle det.
+          </p>
+          <div class="quote" style="margin-top:20px;font-size:17px">
+            "LLM'en foreslår.<br>Du godkender.<br><span class="blue">Curator, not dictator.</span>"
+          </div>
+          <div style="margin-top:20px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:10px">Trail indlæser alt fra klienten</div>
+            <div class="flow">
+              <span class="flow-step">Brand guides</span><span class="flow-arrow">→</span>
+              <span class="flow-step">Eksist. content</span><span class="flow-arrow">→</span>
+              <span class="flow-step">Kampagner</span><span class="flow-arrow">→</span>
+              <span class="flow-step">Kundeindsigter</span><span class="flow-arrow">→</span>
+              <span class="flow-step">Lyd · Video</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card" style="padding:20px 22px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);margin-bottom:10px">Forskellig fra RAG</div>
+            <table class="ctable">
+              <thead><tr><th>Dimension</th><th>Traditionel RAG</th><th>Trail</th></tr></thead>
+              <tbody>
+                <tr><td>Arbejdsmodel</td><td>Query-time retrieval</td><td>Ingest-time kompilering</td></tr>
+                <tr><td>Brand konsistens</td><td>Ingen garanti</td><td>Klientens stemme altid</td></tr>
+                <tr><td>Videnakkumulering</td><td>Statiske chunks</td><td>Wiki vokser over tid</td></tr>
+                <tr><td>Kvalitetssikring</td><td>Ingen</td><td>Kureret godkendelseskø</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="grid-2" style="gap:12px">
+            <div class="card card-blue" style="padding:16px 18px;text-align:center">
+              <div class="stat-num" style="font-size:36px">2800+</div>
+              <div class="stat-label">klienter der kan<br>få brand intelligence</div>
+            </div>
+            <div class="card card-blue" style="padding:16px 18px;text-align:center">
+              <div class="stat-num" style="font-size:36px">∞</div>
+              <div class="stat-label">vidensbasen<br>vokser organisk</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 5 TRAIL WORKFLOW ══════════ -->
+  <section class="slide" data-label="trail — Fra brand til AI-assistent">
+    <div class="max-w w-full" style="margin-top:12px">
+      <div class="eyebrow">trail · Konkret workflow for et bureau</div>
+      <h2>Fra brand brief<br>til <em>levende AI-assistent.</em></h2>
+      <div class="divider" style="margin-top:16px"></div>
+      <div class="grid-2" style="margin-top:22px;gap:22px;align-items:start">
+        <div>
+          <div style="display:flex;flex-direction:column;gap:0">
+            <div style="display:flex;gap:16px;align-items:flex-start;padding-bottom:18px">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--blue-glow);border:1px solid rgba(0,178,255,.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--blue);flex-shrink:0">1</div>
+              <div><div style="font-size:14px;font-weight:600;margin-bottom:4px">Onboarding — brand intelligence upload</div>
+              <p style="font-size:13px;color:var(--muted);line-height:1.6">Upload eksisterende brand guides, kampagne-historik, kundeindsigter, tone-of-voice-docs for en ny klient. Trail kompilerer det til Neurons.</p></div>
+            </div>
+            <div style="width:1px;height:14px;background:rgba(0,178,255,.2);margin-left:16px;margin-bottom:2px"></div>
+            <div style="display:flex;gap:16px;align-items:flex-start;padding-bottom:18px">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--blue-glow);border:1px solid rgba(0,178,255,.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--blue);flex-shrink:0">2</div>
+              <div><div style="font-size:14px;font-weight:600;margin-bottom:4px">AI genererer — alltid on-brand</div>
+              <p style="font-size:13px;color:var(--muted);line-height:1.6">Jeres team beder Trail om content: "Skriv 5 LinkedIn-opslag om [produkt] til [målgruppe]." Output er i klientens stemme, med klientens fakta.</p></div>
+            </div>
+            <div style="width:1px;height:14px;background:rgba(0,178,255,.2);margin-left:16px;margin-bottom:2px"></div>
+            <div style="display:flex;gap:16px;align-items:flex-start;padding-bottom:18px">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--blue-glow);border:1px solid rgba(0,178,255,.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--blue);flex-shrink:0">3</div>
+              <div><div style="font-size:14px;font-weight:600;margin-bottom:4px">Kuration — I godkender</div>
+              <p style="font-size:13px;color:var(--muted);line-height:1.6">Alt AI-foreslået indhold lander i en kureret kø. Jeres copywriters reviewer, tilpasser og godkender — AI gør tungt løft, mennesker giver finalen.</p></div>
+            </div>
+            <div style="width:1px;height:14px;background:rgba(0,178,255,.2);margin-left:16px;margin-bottom:2px"></div>
+            <div style="display:flex;gap:16px;align-items:flex-start">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--blue-glow);border:1px solid rgba(0,178,255,.3);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--blue);flex-shrink:0">4</div>
+              <div><div style="font-size:14px;font-weight:600;margin-bottom:4px">Deploy — AI-assistent på klientens site</div>
+              <p style="font-size:13px;color:var(--muted);line-height:1.6">Via @webhouse/cms integreres Trail som vidensbase for en AI-chat på klientens website. Besøgende stiller spørgsmål — AI svarer med klientens stemme.</p></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card card-blue" style="padding:18px 20px">
+            <h3 style="margin-bottom:8px">Hvad det giver syttensyvogtres</h3>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+              <div style="font-size:13px;color:var(--muted);display:flex;gap:8px;line-height:1.5"><span class="blue">→</span><span>Differentier klienter med AI der faktisk kender dem</span></div>
+              <div style="font-size:13px;color:var(--muted);display:flex;gap:8px;line-height:1.5"><span class="blue">→</span><span>Accelerér content-produktion for 2800+ klienter</span></div>
+              <div style="font-size:13px;color:var(--muted);display:flex;gap:8px;line-height:1.5"><span class="blue">→</span><span>Nyt premium tilbud: "AI brand intelligence setup"</span></div>
+              <div style="font-size:13px;color:var(--muted);display:flex;gap:8px;line-height:1.5"><span class="blue">→</span><span>Løbende abonnement — ikke bare et engangsprojekt</span></div>
+            </div>
+          </div>
+          <div class="card card-blue" style="padding:18px 20px">
+            <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:8px">Eksempel · FysioDK Aalborg Sport</div>
+            <p style="font-size:13px;color:var(--muted);line-height:1.65">Trail driver AI-symptomassistenten — matcher patienter til rette behandler og booker tid direkte. Vidensbasen vokser for hver artikel klinikken publicerer.</p>
+            <div class="tags" style="margin-top:10px"><span class="tag">Brand-specifik AI</span><span class="tag">24/7 booking</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 6 CMS ══════════ -->
+  <section class="slide" data-label="cms — AI-native websites">
+    <div class="max-w w-full" style="margin-top:16px">
+      <div class="eyebrow">webhouse.app · docs.webhouse.app</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 335.2 338.48" height="42" width="42" style="flex-shrink:0">
+          <path fill="#2a2a3e" d="M167.6,0C87.6,0,7.6,48,7.6,144s48,169.6,112,192c32,9.6,48-9.6,48-41.6"/>
+          <path fill="#212135" d="M7.6,144c-16,48-6.4,118.4,25.6,156.8,25.6,25.6,64,38.4,86.4,35.2"/>
+          <path fill="#f7bb2e" d="M167.6,0c80,0,160,48,160,144s-48,169.6-112,192c-32,9.6-48-9.6-48-41.6"/>
+          <path fill="#d9a11a" d="M327.6,144c16,48,6.4,118.4-25.6,156.8-25.6,25.6-64,38.4-86.4,35.2"/>
+          <path fill="#fff" d="M52.4,160c38.4-59.73,76.8-89.6,115.2-89.6s76.8,29.87,115.2,89.6c-38.4,59.73-76.8,89.6-115.2,89.6s-76.8-29.87-115.2-89.6Z"/>
+          <circle fill="#f7bb2e" cx="167.6" cy="160" r="48"/>
+          <circle fill="#0d0d0d" cx="167.6" cy="160" r="20.8"/>
+          <circle fill="rgba(255,255,255,0.9)" cx="180.4" cy="147.2" r="8.96"/>
+          <circle fill="rgba(255,255,255,0.3)" cx="158" cy="171.2" r="4.16"/>
+        </svg>
+        <h2 style="margin-bottom:0">Det tekniske fundament<br>bag <em>kampagneklare sites.</em></h2>
+      </div>
+      <div class="divider" style="margin-top:16px"></div>
+      <div class="grid-2" style="margin-top:22px;gap:20px;align-items:start">
+        <div>
+          <p class="lead" style="font-size:14px"><strong>Ikke WordPress. Ikke Wix.</strong> Et fundament bygget fra bunden — AI-native, framework-agnostisk, med 64 integrerede værktøjer.</p>
+          <table class="ctable" style="margin-top:18px">
+            <thead><tr><th>Egenskab</th><th>WordPress</th><th>@webhouse/cms</th></tr></thead>
+            <tbody>
+              <tr><td>Loadtid (mobil)</td><td>3–6 sekunder</td><td>0.4–0.8 sekunder</td></tr>
+              <tr><td>Google Lighthouse</td><td>55–70</td><td>95–100</td></tr>
+              <tr><td>Sikkerhed</td><td>43% af alle hacks</td><td>Ingen CMS-angreb</td></tr>
+              <tr><td>AI-integration</td><td>Plugin-baseret</td><td>Native · 64 tools</td></tr>
+              <tr><td>GEO (AI-søgemaskiner)</td><td>Ingen</td><td>llms.txt · RSS · JSON-LD</td></tr>
+            </tbody>
+          </table>
+          <div class="tags" style="margin-top:16px">
+            <span class="tag">22 felttyper</span>
+            <span class="tag">Statisk output · 95+ Lighthouse</span>
+            <span class="tag">Next.js · Astro · Hugo · Django 5</span>
+            <span class="tag">.NET 10 · Java (Spring Boot)</span>
+            <span class="tag">Rails · Laravel · PHP · Rust · Swift</span>
+            <span class="tag">52+ milestones i prod</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card card-blue" style="padding:18px 20px">
+            <h3 style="margin-bottom:8px">AI Lock — unik feature</h3>
+            <p style="font-size:13px;color:var(--muted);line-height:1.65">Feltbaseret content-beskyttelse. AI kan ikke overskrive hvad et menneske har redigeret. Det eneste CMS i verden med denne funktion.</p>
+          </div>
+          <div class="card card-blue" style="padding:18px 20px">
+            <h3 style="margin-bottom:8px">Relevant for syttensyvogtres</h3>
+            <p style="font-size:13px;color:var(--muted);line-height:1.65">Når jeres klienter skal have nyt site kan I tilbyde en platform der er hurtigere, sikrere og AI-nativ fra dag ét — og som vokser med klientens content-strategi.</p>
+          </div>
+          <div class="card" style="padding:18px 20px">
+            <h3 style="margin-bottom:8px">One-click deploy · Docker · Fly.io</h3>
+            <p style="font-size:13px;color:var(--muted);line-height:1.65">12 deploy-templates. Backup til cloud. Lighthouse-audit built-in. Import fra WordPress. Webhooks til Discord/Slack.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 7 64 TOOLS ══════════ -->
+  <section class="slide" data-label="64 Værktøjer · Native App">
+    <div class="max-w w-full" style="margin-top:16px">
+      <div class="eyebrow">@webhouse/cms · Chat Platform</div>
+      <h2>64 værktøjer.<br><em>Styr hele sitet<br>med din stemme.</em></h2>
+      <div class="divider" style="margin-top:20px"></div>
+      <div class="grid-2" style="margin-top:24px;gap:22px;align-items:start">
+        <div>
+          <p class="lead" style="font-size:14px;margin-bottom:16px">
+            CMS'et indeholder en komplet <strong>chat-platform med 64 MCP-værktøjer</strong>.
+            Jeres klienter styrer hele sitet via naturlig dialog — på dansk, engelsk eller ethvert sprog.
+          </p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="tag" style="border-radius:8px;padding:7px 12px">📄 Indhold — opret, rediger, publicer, klon</div>
+            <div class="tag" style="border-radius:8px;padding:7px 12px">🤖 AI-generering — skriv, omskriv, oversæt</div>
+            <div class="tag" style="border-radius:8px;padding:7px 12px">🖼️ Medie — søg og browse mediebibliotek</div>
+            <div class="tag" style="border-radius:8px;padding:7px 12px">🦾 Agenter — kør og godkend via curation kø</div>
+            <div class="tag" style="border-radius:8px;padding:7px 12px">🗓️ Planlægning — publicer fremad, revisionshistorik</div>
+            <div class="tag" style="border-radius:8px;padding:7px 12px">⚙️ Site — byg, deploy, Lighthouse, linktjek</div>
+            <div class="tag" style="border-radius:8px;padding:7px 12px">📬 Formularer — læs kontaktindmeldelser</div>
+            <div class="tag" style="border-radius:8px;padding:7px 12px">🧠 Hukommelse — gem/hent på tværs af samtaler</div>
+            <div class="tag" style="border-radius:8px;padding:7px 12px">🌐 Web — søg nettet, hent fra URLs</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="background:rgba(0,0,0,.35);border:1px solid rgba(0,178,255,.25);border-radius:14px;padding:20px 22px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:14px">Eksempel · Klient chatter med sit site</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="background:rgba(255,255,255,.06);border-radius:10px 10px 10px 2px;padding:9px 13px;font-size:13px;max-width:88%">"Skriv en kampagneside om vores sommersalg — dansk og engelsk, SEO-optimeret."</div>
+              <div style="background:var(--blue-glow2);border:1px solid rgba(0,178,255,.2);border-radius:10px 10px 2px 10px;padding:9px 13px;font-size:13px;max-width:92%;align-self:flex-end">"Siden er klar (dansk + engelsk), SEO-score 96, intern linking til 3 sider. <span class="blue">Publicere nu?</span>"</div>
+              <div style="background:rgba(255,255,255,.06);border-radius:10px 10px 10px 2px;padding:9px 13px;font-size:13px;max-width:50%">"Ja."</div>
+              <div style="background:var(--blue-glow2);border:1px solid rgba(0,178,255,.2);border-radius:10px 10px 2px 10px;padding:9px 13px;font-size:13px;max-width:88%;align-self:flex-end">"Publiceret på begge sprog. Sitemap opdateret. <span class="blue">✓ Done</span>"</div>
+            </div>
+          </div>
+          <div class="card card-orange" style="padding:18px 20px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:22px">📱</span><h3>Native App — på vej</h3></div>
+            <p style="font-size:13px;color:var(--muted);line-height:1.65"><strong>Bare tal til dit website.</strong> Diktér en opdatering på telefonen, få den publiceret. Godkend AI-forslag fra sofaen. App Store og Google Play.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 7b BRAND INTELLIGENCE DEMO ══════════ -->
+  <section class="slide" data-label="trail · Brand Intelligence Demo">
+    <div class="max-w w-full" style="margin-top:12px">
+      <div class="eyebrow">trail · Live demo — brand intelligence i praksis</div>
+      <div class="grid-2" style="gap:24px;align-items:start;margin-top:10px">
+
+        <!-- Left: intro + scenario chips -->
+        <div>
+          <h2 style="font-size:clamp(24px,3vw,42px)">Spørg ind til<br>en klients brand.<br><em>Få assets tilbage.</em></h2>
+          <div class="divider" style="margin-top:16px"></div>
+          <p class="lead" style="font-size:13px;margin-top:4px">
+            Trail's brand intelligence base indeholder alt om klienten — tone of voice, farver,
+            logo, billeder og kampagnehistorik. Spørg på naturligt sprog. Få brand-korrekt output tilbage.
+          </p>
+          <div style="margin-top:16px;display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center"><span class="blue">✓</span> Henter brand assets direkte fra Trail</div>
+            <div style="font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center"><span class="blue">✓</span> Genererer copy i klientens stemme</div>
+            <div style="font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center"><span class="blue">✓</span> Viser relevante billeder og logo</div>
+            <div style="font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center"><span class="blue">✓</span> Tone of voice altid konsistent</div>
+          </div>
+          <div style="margin-top:16px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Vælg en klient:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <button class="bi-chip" onclick="biRun('zoo',this)">🦁 Aalborg Zoo</button>
+              <button class="bi-chip" onclick="biRun('festival',this)">🎵 Nibe Festival</button>
+              <button class="bi-chip" onclick="biRun('xlbyg',this)">🔨 XL-byg</button>
+            </div>
+          </div>
+          <div style="margin-top:14px;background:var(--blue-glow2);border:1px solid rgba(0,178,255,.2);border-radius:10px;padding:12px 14px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-bottom:6px">trail · Brand Intelligence</div>
+            <p style="font-size:12px;color:var(--muted);line-height:1.6">Jo mere klienten publicerer og jo mere materiale der inlæses, jo klogere og præcis bliver basen. Vokser organisk med hvert nyt stykke content.</p>
+          </div>
+        </div>
+
+        <!-- Right: interactive chat -->
+        <div>
+          <div id="bi-widget" style="background:rgba(0,0,0,.35);border:1px solid rgba(0,178,255,.2);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;height:440px">
+            <div style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px;background:rgba(0,178,255,.05)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" style="flex-shrink:0">
+                <circle cx="16" cy="16" r="13" fill="none" stroke="#FAF9F5" stroke-width="2.5"/>
+                <circle cx="16" cy="16" r="8.5" fill="none" stroke="#e8a87c" stroke-width="1" opacity="0.7"/>
+                <circle cx="16" cy="16" r="3.8" fill="#e8a87c"/>
+              </svg>
+              <div>
+                <div style="font-size:13px;font-weight:600">trail · Brand Intelligence</div>
+                <div style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;background:#4ade80;border-radius:50%;display:inline-block"></span> Online · 3 klienter indlæst</div>
+              </div>
+            </div>
+            <div id="bi-messages" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth">
+              <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:12px 12px 12px 3px;padding:10px 13px;font-size:13px;max-width:90%;line-height:1.6">
+                Hej! Jeg har adgang til brand intelligence for 3 klienter. Vælg en ovenfor, eller skriv hvad du har brug for. 😊
+              </div>
+            </div>
+            <div style="padding:10px 12px;border-top:1px solid rgba(255,255,255,.07);display:flex;gap:8px;background:rgba(0,0,0,.2)">
+              <input id="bi-input" type="text" placeholder="Skriv din forespørgsel…"
+                style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 12px;font-size:13px;color:var(--light);font-family:var(--font-body);outline:none;transition:border-color .2s"
+                onfocus="this.style.borderColor='rgba(0,178,255,.5)'"
+                onblur="this.style.borderColor='rgba(255,255,255,.1)'"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();biSend()}"
+              />
+              <button onclick="biSend()" style="background:var(--blue);border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s"
+                onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background='var(--blue)'">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M14 8L2 2l2.5 6L2 14l12-6z" fill="#23282f"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 8 MULIGHED ══════════ -->
+  <section class="slide" data-label="Mulighed for syttensyvogtres">
+    <div class="max-w w-full" style="margin-top:16px">
+      <div class="eyebrow">Det konkrete regnestykke</div>
+      <h2>2800 klienter.<br><em>Hvad er potentialet?</em></h2>
+      <div class="divider" style="margin-top:20px"></div>
+      <div class="grid-2" style="margin-top:24px;gap:22px">
+        <div>
+          <table class="ctable">
+            <thead><tr><th>Dimension</th><th>Uden AI-platform</th><th>Med AI-platform</th></tr></thead>
+            <tbody>
+              <tr><td>Content-produktion</td><td>Manuelt, tid = penge</td><td>AI drafts + menneskelig finish</td></tr>
+              <tr><td>Brand konsistens</td><td>Guidelines i PDF</td><td>AI kender brandet indefra</td></tr>
+              <tr><td>Site-opdateringer</td><td>Kræver udviklertimer</td><td>Klienten taler til sitet</td></tr>
+              <tr><td>Flersproglig</td><td>Dyrt at oversætte</td><td>AI på minutter</td></tr>
+              <tr><td>AI-assistent</td><td>Ikke muligt / dyrt</td><td>trail + cms native</td></tr>
+              <tr><td>GEO-synlighed</td><td>Ingen</td><td>ChatGPT, Perplexity, Gemini</td></tr>
+            </tbody>
+          </table>
+          <div class="quote" style="margin-top:20px;font-size:16px">
+            "Vi vil ikke have jeres kunder.<br>Vi vil gøre jer i stand til at levere <span class="blue">mere</span> til dem."
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;justify-content:center">
+          <div class="card card-blue" style="text-align:center;padding:28px">
+            <div class="stat-num">5×</div>
+            <div class="stat-label" style="margin-top:8px">mere content output<br>samme resourcer</div>
+          </div>
+          <div class="card card-blue" style="text-align:center;padding:28px">
+            <div class="stat-num">95+</div>
+            <div class="stat-label" style="margin-top:8px">Lighthouse score<br>på alle klient-sites</div>
+          </div>
+          <div class="card card-blue" style="text-align:center;padding:28px">
+            <div class="stat-num">100M+</div>
+            <div class="stat-label" style="margin-top:8px">DKK klientbudgetter<br>der performer endnu bedre</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 9 SAMARBEJDE ══════════ -->
+  <section class="slide" data-label="Samarbejdsmodeller">
+    <div class="max-w w-full" style="margin-top:16px">
+      <div class="eyebrow">Konkrete samarbejdsmuligheder</div>
+      <h2>Tre modeller.<br><em>Én partner.</em></h2>
+      <div class="divider" style="margin-top:20px"></div>
+      <div style="margin-top:24px;display:flex;flex-direction:column;gap:16px">
+        <div class="card card-blue" style="padding:20px 24px">
+          <div style="display:flex;gap:18px;align-items:flex-start">
+            <div style="font-size:26px;min-width:40px">🌐</div>
+            <div>
+              <h3 style="margin-bottom:7px">1 — Teknologipartner på klient-websites</h3>
+              <p style="font-size:13px;color:var(--muted);line-height:1.7">Når en klient skal have nyt site leverer vi det på @webhouse/cms. I styrer strategi, design og kommunikation — vi leverer det AI-native tekniske fundament. White-label eller co-branding.</p>
+              <div class="tags" style="margin-top:10px"><span class="tag">Delt honorar</span><span class="tag">I holder klientrelationen</span><span class="tag">White-label muligt</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="padding:20px 24px">
+          <div style="display:flex;gap:18px;align-items:flex-start">
+            <div style="font-size:26px;min-width:40px">🧠</div>
+            <div>
+              <h3 style="margin-bottom:7px">2 — Brand Intelligence som premium ydelse</h3>
+              <p style="font-size:13px;color:var(--muted);line-height:1.7">For klienter med faglig dybde bygger vi en Trail brand intelligence base. Resultatet: AI der skriver i klientens stemme + en AI-assistent på websitet. Nyt premium produkt I kan sælge.</p>
+              <div class="tags" style="margin-top:10px"><span class="tag">Brand-specifik AI</span><span class="tag">Løbende abonnement</span><span class="tag">Differentierer jeres tilbud</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="padding:20px 24px">
+          <div style="display:flex;gap:18px;align-items:flex-start">
+            <div style="font-size:26px;min-width:40px">⚡</div>
+            <div>
+              <h3 style="margin-bottom:7px">3 — AI-workflow internt hos syttensyvogtres</h3>
+              <p style="font-size:13px;color:var(--muted);line-height:1.7">Vi bygger et intern AI-system der hjælper jeres 52 medarbejdere med content drafts, kampagnekopi og briefings — tilpasset jeres processer. Copywriters bruger tid på det der kræver menneskelig indsigt.</p>
+              <div class="tags" style="margin-top:10px"><span class="tag">Intern produktivitetsgevinst</span><span class="tag">Tilpasset jeres workflow</span><span class="tag">Ingen template-output</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 10 NÆSTE SKRIDT ══════════ -->
+  <section class="slide" data-label="Næste skridt">
+    <div class="max-w w-full text-center" style="margin-top:36px">
+      <div class="eyebrow">Lad os komme i gang</div>
+      <h1 style="font-size:clamp(34px,4.8vw,62px)">Hvad giver mening<br>at prøve <em>af?</em></h1>
+      <div class="divider divider-center" style="margin-top:24px"></div>
+      <p class="lead" style="margin:20px auto 0;text-align:center;font-size:14px">
+        Ingen stor forpligtelse. Det smarteste første skridt er et konkret mini-projekt
+        der viser værdien i praksis — for en rigtig klient, med målbare resultater.
+      </p>
+      <div class="grid-3" style="margin-top:36px;gap:16px;text-align:left">
+        <div class="card card-blue" style="padding:24px">
+          <div style="font-size:26px;margin-bottom:12px">🔍</div>
+          <h3 style="margin-bottom:8px">Audit af én klient</h3>
+          <p style="font-size:13px;color:var(--muted);line-height:1.65">Vi gennemgår én klient og kortlægger hvad AI konkret ville gøre for dem. Ingen forpligtelse.</p>
+        </div>
+        <div class="card" style="padding:24px">
+          <div style="font-size:26px;margin-bottom:12px">🧠</div>
+          <h3 style="margin-bottom:8px">Brand intelligence pilot</h3>
+          <p style="font-size:13px;color:var(--muted);line-height:1.65">Vi bygger en Trail brand intelligence base for én klient. I vurderer kvaliteten af AI-output og hvad det sparer af tid.</p>
+        </div>
+        <div class="card" style="padding:24px">
+          <div style="font-size:26px;margin-bottom:12px">🌐</div>
+          <h3 style="margin-bottom:8px">Prototype-site på 2 uger</h3>
+          <p style="font-size:13px;color:var(--muted);line-height:1.65">Vælg en klient der trænger til nyt site. Vi bygger på @webhouse/cms på 2 uger — I vurderer og sælger videre.</p>
+        </div>
+      </div>
+      <div style="margin-top:36px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+        <a href="mailto:christian@broberg.ai" class="btn btn-orange"><span>📧</span> christian@broberg.ai</a>
+        <a href="tel:+4522680880" class="btn btn-outline"><span>📞</span> +45 22 68 08 80</a>
+        <a href="https://webhouse.dk" class="btn btn-outline" target="_blank"><span>🌐</span> webhouse.dk</a>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-top:18px">Mødes i Aalborg eller online — hvad der passer bedst for Alberte og teamet.</p>
+    </div>
+  </section>
+
+</div>
+
+<div id="nav">
+  <button class="nav-btn" id="prev" onclick="go(-1)" disabled>←</button>
+  <div id="dots"></div>
+  <button class="nav-btn" id="next" onclick="go(1)">→</button>
+  <div id="slide-counter">1 / 10</div>
+</div>
+
+<script>
+  const slides=Array.from(document.querySelectorAll('.slide'));
+  const label=document.getElementById('slide-label');
+  const counter=document.getElementById('slide-counter');
+  const dotsEl=document.getElementById('dots');
+  const prevBtn=document.getElementById('prev');
+  const nextBtn=document.getElementById('next');
+  let cur=0;
+  slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dot'+(i===0?' active':'');d.onclick=()=>{const diff=i-cur;if(diff!==0)go(diff)};dotsEl.appendChild(d)});
+  function go(dir){const next=cur+dir;if(next<0||next>=slides.length)return;slides[cur].classList.remove('active');slides[cur].classList.add('exit');const old=cur;cur=next;setTimeout(()=>slides[old].classList.remove('exit'),550);slides[cur].classList.add('active');update()}
+  function update(){document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===cur));label.textContent=slides[cur].dataset.label||'';counter.textContent=(cur+1)+' / '+slides.length;prevBtn.disabled=cur===0;nextBtn.disabled=cur===slides.length-1}
+  document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowDown')go(1);if(e.key==='ArrowLeft'||e.key==='ArrowUp')go(-1)});
+  update();
+
+  /* ── Brand Intelligence Demo ── */
+  const biStyle = document.createElement('style');
+  biStyle.textContent = `
+    .bi-chip { background:rgba(0,178,255,.1);border:1px solid rgba(0,178,255,.25);color:#40c8ff;border-radius:20px;padding:5px 12px;font-size:12px;font-family:'DM Sans',-apple-system,sans-serif;cursor:pointer;transition:background .2s; }
+    .bi-chip:hover { background:rgba(0,178,255,.22); }
+    .bi-chip.active { background:rgba(0,178,255,.3);border-color:rgba(0,178,255,.5); }
+    #bi-messages::-webkit-scrollbar { width:4px; }
+    #bi-messages::-webkit-scrollbar-thumb { background:rgba(0,178,255,.2);border-radius:2px; }
+    .bi-typing { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:11px 14px;display:flex;gap:4px;align-items:center;width:fit-content; }
+    .bi-dot { display:inline-block;width:6px;height:6px;background:rgba(0,178,255,.5);border-radius:50%;animation:biBounce 1.2s infinite; }
+    .bi-dot:nth-child(2){animation-delay:.2s} .bi-dot:nth-child(3){animation-delay:.4s}
+    @keyframes biBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+    .bi-msg-ai { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:12px 12px 12px 3px;padding:10px 13px;font-size:13px;max-width:92%;line-height:1.6; }
+    .bi-msg-usr { background:rgba(0,178,255,.12);border:1px solid rgba(0,178,255,.2);border-radius:12px 12px 3px 12px;padding:10px 13px;font-size:13px;max-width:88%;align-self:flex-end;line-height:1.6; }
+    .bi-asset-card { background:rgba(0,0,0,.3);border:1px solid rgba(0,178,255,.15);border-radius:10px;padding:12px 14px;margin-top:8px; }
+    .bi-color-swatch { width:22px;height:22px;border-radius:5px;display:inline-block;border:1px solid rgba(255,255,255,.15); }
+    .bi-img { width:60px;height:42px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1); }
+    .bi-copy-block { background:rgba(0,178,255,.05);border:1px solid rgba(0,178,255,.15);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px;line-height:1.7;color:#c8e8ff;font-style:italic; }
+    .bi-label { font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,178,255,.7);margin-bottom:6px; }
+  `;
+  document.head.appendChild(biStyle);
+
+  const BI_DATA = {
+    zoo: {
+      query: 'Hent kampagnebilleder og copy til Aalborg Zoo\'s sommerkampagne – målgruppe: familier med børn 5-12 år',
+      steps: [
+        { delay: 400, text: 'Søger i brand intelligence for Aalborg Zoo…' },
+        { delay: 2200, text: 'Fandt 63 Neurons om Aalborg Zoo. Analyserer tone of voice og brand assets…', dots: true },
+        { delay: 4500, assets: true,
+          brand: { name: 'Aalborg Zoo', colors: ['#1B7A3E','#F5A623','#2C3E50','#FFFFFF'], tone: 'Eventyrlig · Familiær · Engagerende · Lokal stolthed' },
+          images: [
+            { icon:'🦁', label:'Løveunger — sommer 2025' },
+            { icon:'🐘', label:'Elefantbad — kampagnefoto' },
+            { icon:'👨‍👩‍👧', label:'Familieoplevelse — entré' },
+          ],
+          copy: '🌞 Sommerens vildeste oplevelse venter jeres familie!\n\nMød vores nyfødte løveunger, se elefanterne bade i sommervarmen og oplev naturen tæt på — midt i Aalborg.\n\n🎟️ Køb billetter nu og spar 15% med familierabat.\n\n#AalborgZoo #Sommerferie #Familiesjov'
+        },
+      ]
+    },
+    festival: {
+      query: 'Generer 3 LinkedIn-opslag til Nibe Festival 2026 – fremhæv kunstneroffentliggørelse og billetkøb',
+      steps: [
+        { delay: 400, text: 'Henter brand intelligence for Nibe Festival…' },
+        { delay: 2000, text: 'Fandt 41 Neurons. Tone of voice: Varm · Autentisk · Fællesskabsbaseret. Henter kampagne-assets…', dots: true },
+        { delay: 4200, assets: true,
+          brand: { name: 'Nibe Festival', colors: ['#E8421A','#F7C948','#1A1A1A','#FFFFFF'], tone: 'Varm · Autentisk · Stolt nordjysk · Fællesskab' },
+          images: [
+            { icon:'🎵', label:'Scenefoto — mainstage 2025' },
+            { icon:'🎪', label:'Festivalpladsen — aerial' },
+            { icon:'🙌', label:'Publikum — crowd energy' },
+          ],
+          copy: '🎸 DE ER KLAR. ER DU?\n\nVi kan endelig afsløre de første navne til Nibe Festival 2026 — og vi lover, det er verdt ventetiden.\n\nNibe Festival er ikke bare musik. Det er den sommerfornemmelse du ikke kan købe andre steder.\n\n🎟️ Tidlig-fugl billetter sælges ud. Sikr din plads nu.\n\n#NibeFestival #Nordjylland #LiveMusic2026'
+        },
+      ]
+    },
+    xlbyg: {
+      query: 'Skriv annoncetext og find brandmateriale til XL-byg\'s forårskampagne — fokus på terrasse og udehus',
+      steps: [
+        { delay: 400, text: 'Søger i brand intelligence for XL-byg…' },
+        { delay: 2100, text: 'Fandt 88 Neurons. Analyserer sæsonkampagner, prisstrategi og visuel identitet…', dots: true },
+        { delay: 4300, assets: true,
+          brand: { name: 'XL-byg', colors: ['#E31E24','#1A1A1A','#F5F5F5','#FFD700'], tone: 'Kompetent · Direkte · Lokal ekspert · Gør-det-selv stolthed' },
+          images: [
+            { icon:'🌿', label:'Terrassetræ — Lærk/Teak' },
+            { icon:'🏡', label:'Udehus — livsstil 2026' },
+            { icon:'🔨', label:'Byggematerialer — sort/hvid' },
+          ],
+          copy: '☀️ FORÅRET ER TÆT PÅ — ER DIN TERRASSE KLAR?\n\nHos din lokale XL-byg finder du alt til årets terrasseprojekt:\n• Certificeret terrassetræ fra 89 kr/meter\n• Komplet udehus-pakker med alt inkluderet\n• Gratis facadesnak med vores byggekonsulent\n\nPrisen gælder kun denne uge. Kom ind i butikken eller bestil online.\n\n#XLbyg #Terrasse #Byggeprojekt #Forår2026'
+        },
+      ]
+    }
+  };
+
+  let biTimers = [];
+  function biT(fn, ms){ const id = setTimeout(fn, ms); biTimers.push(id); return id; }
+  function biClear(){ biTimers.forEach(clearTimeout); biTimers = []; }
+  function biMsgs(){ return document.getElementById('bi-messages'); }
+
+  function biAddAi(html, isAsset){
+    const el = document.createElement('div');
+    if(isAsset){ el.innerHTML = html; el.style.cssText='max-width:96%'; }
+    else { el.className='bi-msg-ai'; el.innerHTML=html; }
+    biMsgs().appendChild(el); biMsgs().scrollTop=99999; return el;
+  }
+  function biAddUsr(text){ const el=document.createElement('div'); el.className='bi-msg-usr'; el.textContent=text; biMsgs().appendChild(el); biMsgs().scrollTop=99999; }
+  function biShowTyping(){ if(document.getElementById('bi-typing'))return; const el=document.createElement('div'); el.id='bi-typing'; el.className='bi-typing'; el.innerHTML='<span class="bi-dot"></span><span class="bi-dot"></span><span class="bi-dot"></span>'; biMsgs().appendChild(el); biMsgs().scrollTop=99999; }
+  function biHideTyping(){ document.getElementById('bi-typing')?.remove(); }
+
+  function biTypeInInput(text, onDone){
+    const inp = document.getElementById('bi-input');
+    inp.value=''; inp.placeholder='';
+    let i=0;
+    function step(){ if(i<text.length){ inp.value+=text[i++]; biT(step,28+Math.random()*20); } else { biT(()=>{ inp.value=''; inp.placeholder='Skriv din forespørgsel…'; if(onDone) onDone(); },300); } }
+    step();
+  }
+
+  function biRenderAsset(data){
+    const { brand, images, copy } = data;
+    const swatches = brand.colors.map(c=>`<span class="bi-color-swatch" style="background:${c}" title="${c}"></span>`).join(' ');
+    const imgs = images.map(i=>`<div class="bi-img" title="${i.label}">${i.icon}</div>`).join(' ');
+    const copyEscaped = copy.replace(/\n/g,'<br>');
+    const html = `
+      <div class="bi-asset-card">
+        <div class="bi-label">Brand intelligence · ${brand.name}</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div>
+            <div style="font-size:11px;color:rgba(0,178,255,.6);margin-bottom:5px">Brand farver</div>
+            <div style="display:flex;gap:6px;align-items:center">${swatches}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:rgba(0,178,255,.6);margin-bottom:5px">Tone of voice</div>
+            <div style="font-size:12px;color:#c8e8ff">${brand.tone}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:rgba(0,178,255,.6);margin-bottom:5px">Relevante billeder (${images.length} fundet)</div>
+            <div style="display:flex;gap:6px;align-items:center">${imgs}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px">${images.map(i=>i.label).join(' · ')}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:rgba(0,178,255,.6);margin-bottom:4px">Genereret kampagnecopy</div>
+            <div class="bi-copy-block">${copyEscaped}</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button style="background:rgba(0,178,255,.15);border:1px solid rgba(0,178,255,.3);color:#40c8ff;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">📋 Kopiér copy</button>
+            <button style="background:rgba(0,178,255,.15);border:1px solid rgba(0,178,255,.3);color:#40c8ff;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer">🖼️ Download assets</button>
+          </div>
+        </div>
+      </div>`;
+    biAddAi(html, true);
+    biMsgs().scrollTop=99999;
+  }
+
+  function biRun(key, btn){
+    biClear();
+    document.querySelectorAll('.bi-chip').forEach(b=>b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    biMsgs().innerHTML='';
+    const d = BI_DATA[key]; if(!d) return;
+    const inp = document.getElementById('bi-input');
+
+    biT(()=>biTypeInInput(d.query), 300);
+    biT(()=>{ biAddUsr(d.query); }, 300 + d.query.length*30 + 400);
+
+    let offset = 300 + d.query.length*30 + 800;
+    d.steps.forEach(step => {
+      if(step.dots){ biT(()=>{ biShowTyping(); }, offset-1000); }
+      biT(()=>{
+        biHideTyping();
+        if(step.assets){ biRenderAsset(step); }
+        else { biAddAi(step.text); }
+      }, offset + step.delay);
+      offset += step.delay + (step.dots ? 400 : 0);
+    });
+  }
+
+  function biSend(){
+    const inp=document.getElementById('bi-input');
+    const txt=inp.value.trim(); if(!txt) return;
+    inp.value='';
+    biClear();
+    document.querySelectorAll('.bi-chip').forEach(b=>b.classList.remove('active'));
+    biMsgs().innerHTML='';
+    biAddUsr(txt);
+    biShowTyping();
+    biT(()=>{ biHideTyping(); biAddAi('Analyserer forespørgsel og søger i brand intelligence base…'); biShowTyping(); }, 1500);
+    biT(()=>{ biHideTyping(); biRenderAsset(BI_DATA.zoo); }, 4000);
+  }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>broberg.ai × SocialMate — AI som Vækstmotor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sage:       #9ABDB3;
+      --sage-dark:  #7aa89e;
+      --sage-light: #b8d4cf;
+      --sage-glow:  rgba(154,189,179,0.13);
+      --sage-glow2: rgba(154,189,179,0.07);
+      --dark:       #262830;
+      --dark2:      #1e2028;
+      --dark3:      #1a1c24;
+      --card:       rgba(255,255,255,0.035);
+      --card-border:rgba(255,255,255,0.07);
+      --light:      #F5F6FA;
+      --muted:      rgba(245,246,250,0.5);
+      --orange:     #F3522C;
+      --font-display:'Cormorant Garamond', Georgia, serif;
+      --font-body:   'DM Sans', -apple-system, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { zoom: 1.25; }
+    html, body {
+      height: 100%;
+      font-family: var(--font-body);
+      background: var(--dark);
+      color: var(--light);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    #deck { width: 100%; height: 100vh; position: relative; overflow: hidden; }
+
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center;
+      padding: 96px 80px 120px;
+      opacity: 0; visibility: hidden; transform: translateX(60px);
+      transition: opacity .5s cubic-bezier(.4,0,.2,1), transform .5s cubic-bezier(.4,0,.2,1), visibility 0s linear .5s;
+      pointer-events: none; overflow-y: auto;
+    }
+    .slide.active { opacity:1; visibility:visible; transform:translateX(0); pointer-events:all; transition:opacity .5s cubic-bezier(.4,0,.2,1),transform .5s cubic-bezier(.4,0,.2,1),visibility 0s linear 0s; }
+    .slide.exit   { opacity:0; visibility:visible; transform:translateX(-60px); transition:opacity .5s cubic-bezier(.4,0,.2,1),transform .5s cubic-bezier(.4,0,.2,1),visibility 0s linear .5s; }
+    .slide::before {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:-1;
+      background: radial-gradient(ellipse 55% 45% at 85% 15%, rgba(154,189,179,.06) 0%, transparent 65%),
+                  radial-gradient(ellipse 35% 55% at 5% 85%, rgba(154,189,179,.03) 0%, transparent 55%);
+    }
+
+    /* ── Nav ── */
+    #nav {
+      position:fixed; bottom:34px; left:50%; transform:translateX(-50%);
+      display:flex; align-items:center; gap:16px; z-index:100;
+      background:rgba(26,28,36,.9); backdrop-filter:blur(16px);
+      border:1px solid var(--card-border); border-radius:100px; padding:10px 22px;
+    }
+    .nav-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:18px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:50%; transition:color .2s,background .2s; }
+    .nav-btn:hover { color:var(--sage); background:var(--sage-glow); }
+    .nav-btn:disabled { opacity:.2; pointer-events:none; }
+    #dots { display:flex; gap:8px; align-items:center; }
+    .dot { width:6px; height:6px; border-radius:50%; background:var(--muted); cursor:pointer; transition:all .3s; }
+    .dot.active { background:var(--sage); width:22px; border-radius:3px; }
+    #slide-counter { font-size:12px; color:var(--muted); min-width:36px; text-align:center; font-variant-numeric:tabular-nums; }
+
+    /* ── Header ── */
+    #header {
+      position:fixed; top:0; left:0; right:0; z-index:100; padding:18px 38px;
+      display:flex; align-items:center; justify-content:space-between;
+      background:rgba(38,40,48,.75); backdrop-filter:blur(14px);
+      border-bottom:1px solid var(--card-border);
+    }
+    .header-left { display:flex; align-items:center; gap:18px; }
+    .header-logo { font-family:var(--font-body); font-size:20px; font-weight:600; color:var(--light); letter-spacing:-.03em; display:flex; align-items:center; gap:1px; }
+    .header-logo .ai { color:var(--orange); }
+    .header-sep { width:1px; height:26px; background:var(--card-border); }
+    .header-sm { font-family:var(--font-display); font-size:20px; font-weight:600; color:var(--light); letter-spacing:.06em; display:flex; align-items:center; gap:6px; }
+    .header-sm .x { color:var(--sage); font-size:20px; }
+    #slide-label { font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+
+    /* ── Type ── */
+    .eyebrow { font-size:11px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--sage); margin-bottom:20px; }
+    h1 { font-family:var(--font-display); font-size:clamp(38px,5.2vw,70px); font-weight:500; line-height:1.05; letter-spacing:-.01em; }
+    h1 em, h2 em { font-style:italic; color:var(--sage); }
+    h2 { font-family:var(--font-display); font-size:clamp(28px,3.6vw,50px); font-weight:500; line-height:1.1; letter-spacing:-.01em; }
+    h3 { font-family:var(--font-body); font-size:17px; font-weight:600; line-height:1.3; }
+    .lead { font-size:clamp(14px,1.5vw,17px); line-height:1.75; color:var(--muted); max-width:620px; }
+    .sage { color:var(--sage); } .light { color:var(--light); } .orange { color:var(--orange); }
+    strong { font-weight:600; color:var(--light); }
+    .card h3, .card h3 * { font-family:var(--font-body); font-weight:600; }
+
+    /* ── Cards ── */
+    .card { background:var(--card); border:1px solid var(--card-border); border-radius:16px; padding:24px 28px; }
+    .card-sage { background:var(--sage-glow2); border-color:rgba(154,189,179,.22); }
+    .card-orange { background:rgba(243,82,44,.06); border-color:rgba(243,82,44,.22); }
+
+    /* ── Grid ── */
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+    .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+    .w-full { width:100%; } .max-w { max-width:900px; } .text-center { text-align:center; }
+
+    /* ── Tags ── */
+    .tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .tag { background:var(--sage-glow); border:1px solid rgba(154,189,179,.28); color:var(--sage-light); border-radius:100px; padding:4px 12px; font-size:12px; font-weight:500; }
+    .tag-dark { background:rgba(255,255,255,.05); border-color:var(--card-border); color:var(--muted); }
+    .tag-orange { background:rgba(243,82,44,.1); border-color:rgba(243,82,44,.25); color:#f9836a; }
+
+    /* ── Icon box ── */
+    .icon-box { width:48px; height:48px; background:var(--sage-glow); border:1px solid rgba(154,189,179,.28); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; margin-bottom:14px; }
+
+    /* ── Divider ── */
+    .divider { width:48px; height:2px; background:var(--sage); border-radius:2px; margin:20px 0; }
+    .divider-center { margin:20px auto; }
+
+    /* ── Stats ── */
+    .stat { text-align:center; }
+    .stat-num { font-family:var(--font-display); font-size:48px; font-weight:600; color:var(--sage); letter-spacing:-.02em; line-height:1; }
+    .stat-label { font-size:12px; color:var(--muted); margin-top:6px; line-height:1.4; }
+
+    /* ── Flow ── */
+    .flow { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .flow-step { background:var(--card); border:1px solid var(--card-border); border-radius:10px; padding:9px 16px; font-size:13px; font-weight:500; white-space:nowrap; }
+    .flow-arrow { color:var(--sage); font-size:16px; flex-shrink:0; }
+
+    /* ── Compare table (real <table>) ── */
+    .ctable { width:100%; border-collapse:collapse; }
+    .ctable th, .ctable td { padding:10px 15px; font-size:13px; border-bottom:1px solid var(--card-border); vertical-align:middle; white-space:nowrap; }
+    .ctable th { font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); border-bottom:2px solid var(--card-border); }
+    .ctable td:first-child, .ctable th:first-child { color:var(--muted); }
+    .ctable td:nth-child(2), .ctable th:nth-child(2) { color:#e07070; background:rgba(220,80,80,.05); }
+    .ctable td:nth-child(3), .ctable th:nth-child(3) { color:var(--sage-light); background:var(--sage-glow2); }
+
+    /* ── Number list ── */
+    .num-item { display:flex; gap:16px; align-items:flex-start; margin-bottom:18px; }
+    .num { font-family:var(--font-display); font-size:34px; font-weight:600; color:var(--sage); line-height:1; min-width:42px; }
+
+    /* ── Quote ── */
+    .quote { border-left:3px solid var(--sage); padding-left:20px; font-family:var(--font-display); font-size:19px; font-style:italic; color:var(--light); line-height:1.5; }
+
+    /* ── Tool badge ── */
+    .tool-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(154,189,179,.1); border:1px solid rgba(154,189,179,.2); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:500; color:var(--sage-light); }
+
+    /* ── Agent card ── */
+    .agent-card { background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:16px 18px; }
+    .agent-dot { width:8px; height:8px; border-radius:50%; background:#4ade80; display:inline-block; margin-right:6px; flex-shrink:0; }
+    .agent-dot.inactive { background:rgba(255,255,255,.2); }
+
+    /* ── CTA ── */
+    .btn { display:inline-flex; align-items:center; gap:10px; background:var(--sage); color:var(--dark); border:none; border-radius:100px; padding:13px 30px; font-size:14px; font-weight:600; cursor:pointer; transition:background .2s,transform .15s; text-decoration:none; }
+    .btn:hover { background:var(--sage-light); transform:translateY(-1px); }
+    .btn-outline { background:transparent; color:var(--sage); border:1px solid rgba(154,189,179,.4); }
+    .btn-outline:hover { background:var(--sage-glow); transform:translateY(-1px); }
+    .btn-orange { background:var(--orange); color:#fff; }
+    .btn-orange:hover { background:#e8441e; }
+  </style>
+</head>
+<body>
+
+<header id="header">
+  <div class="header-left">
+    <div class="header-logo" onclick="go(-cur)" style="cursor:pointer" title="Gå til forsiden"><span>broberg</span><span class="ai">.ai</span></div>
+    <div class="header-sep"></div>
+    <div class="header-sm"><span class="x">×</span> SOCIAL MATE</div>
+  </div>
+  <div id="slide-label">AI som Vækstmotor</div>
+</header>
+
+<div id="deck">
+
+  <!-- ══════════ 1 HERO ══════════ -->
+  <section class="slide active" data-label="Introduktion">
+    <div class="max-w w-full" style="margin-top:24px">
+      <div class="eyebrow">broberg.ai × SocialMate · Aalborg 2026</div>
+      <h1>AI er ikke<br>et værktøj.<br><em>Det er en motor.</em></h1>
+      <div class="divider" style="margin-top:28px"></div>
+      <p class="lead" style="max-width:560px">
+        Et møde om hvad der sker, når 30 års digital arkitektur møder moderne AI —
+        og hvad det konkret kan betyde for SocialMate og jeres klienter.
+      </p>
+      <div style="margin-top:44px; display:flex; gap:44px">
+        <div class="stat"><div class="stat-num">30+</div><div class="stat-label">år i digital<br>platformsudvikling</div></div>
+        <div class="stat"><div class="stat-num">1.000+</div><div class="stat-label">websites og<br>platforme leveret</div></div>
+        <div class="stat"><div class="stat-num">64</div><div class="stat-label">AI-værktøjer i<br>CMS-platformen</div></div>
+        <div class="stat"><div class="stat-num">3</div><div class="stat-label">AI-native platforme<br>i produktion</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 2 HVEM ══════════ -->
+  <section class="slide" data-label="Christian Broberg">
+    <div class="max-w w-full" style="margin-top:16px">
+      <div class="eyebrow">Hvem er broberg.ai</div>
+      <h2>Softwarearkitekt.<br><em>Digital pioneer. AI-builder.</em></h2>
+      <div class="divider" style="margin-top:20px"></div>
+      <div class="grid-2" style="margin-top:28px; gap:22px; align-items:start">
+        <div>
+          <p class="lead" style="font-size:14px">
+            <strong>Christian Broberg</strong> grundlagde WebHouse ApS i Aalborg i 1995 — da ingen vidste hvad en hjemmeside var.
+            I 31 år har han bygget digitale platforme for klienter på 5 kontinenter, inkl. FIA, Ole Lynggaard Copenhagen, COWI og Cheminova/FMC.
+          </p>
+          <p class="lead" style="font-size:14px; margin-top:14px">
+            I dag bygger han AI-native platforme: et CMS der skriver sit eget indhold, en videnmotor der kompilerer ekspertise,
+            og et orkestrationssystem der styrer 15+ AI-agenter simultant.
+          </p>
+          <div class="tags" style="margin-top:18px">
+            <span class="tag">MCP-servere</span>
+            <span class="tag">Agent Swarm Management</span>
+            <span class="tag">CI/CD</span>
+            <span class="tag">Tilpassede AI chat platforme</span>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <div class="card card-sage">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104.94 86.05" height="22" style="flex-shrink:0">
+                <path fill="#f9b11d" d="M86.16,45.17c.5-.03.99-.05,1.49-.06,4.3-.05,9.12,2.14,12.15,5.16,2.23,2.2,3.8,4.97,4.55,8.01.82,3.31.55,8.76.55,12.35v15.3s-15.14-.03-15.14-.03c-6.38-.06-12.91.02-19.31.02-.04-5.22-.06-10.44-.04-15.65,0-2.08.1-4.54-.01-6.6-.54-9.59,5.84-17.65,15.75-18.5Z"/>
+                <path fill="#f9b11d" d="M39.81,43.62h.13c-.01.11-2.8,3.41-3.18,3.92-5.07,6.88-4,14.5-4.01,22.73-.01,5.23-.06,10.47-.13,15.7-10.47.17-21.65.01-32.15-.05l-.3-.1c-.23-.47-.2-20.45-.12-22.59.03-1.07.15-2.14.34-3.2.44-2.39,1.44-4.65,2.93-6.57,1.79-2.33,4.19-4.12,6.93-5.18,2.94-1.16,8.36-1.73,11.67-2.2l17.88-2.46Z"/>
+                <path fill="#f9b11d" d="M49.31,42.55c.62-.07,1.25-.11,1.87-.11,4.34-.05,8.52,1.66,11.58,4.75,6.22,6.19,5.12,13.86,5.12,21.88l-.04,16.79c-4.43.02-7-.33-11.25-1.59-9.93-2.74-18.6-11.57-20.53-21.8-1.82-9.67,3.41-18.11,13.26-19.91Z"/>
+                <path fill="#f9b11d" d="M57.1,1.23l.35-.04c0,.27-2.12,2.52-2.63,3.23-1.69,2.38-2.92,5.06-3.61,7.89-.88,3.62-.78,8.34-.88,12.14-.14,5.08-.25,10.17-.34,15.25l-30.88,4.08c-.32-.08-.18,0-.39-.33-.16-2.9,0-7.26-.03-10.32-.03-2.89-.2-9.02.17-11.56.25-1.79.85-3.52,1.74-5.09,4.08-7.24,10.58-7.96,17.85-10L57.1,1.23Z"/>
+                <path fill="#f9b11d" d="M67.36.04c5.01-.32,9.35,1.15,12.93,4.75,2.18,2.18,3.74,4.91,4.5,7.9.85,3.33.59,9.32.59,12.94v16.49c-4.76.22-7.14.04-11.73-1.31-3.5-1.26-5.87-2.34-8.95-4.49-9.13-6.37-15.11-20.42-7.83-30.24,2.68-3.62,6.08-5.37,10.5-6.04Z"/>
+              </svg>
+              <h3>cms</h3>
+            </div>
+            <p style="font-size:13px; color:var(--muted)">@webhouse/cms er et enterprise-level open source AI-native CMS med 64 værktøjer. Indhold skrives, oversættes og optimeres automatisk.</p>
+          </div>
+          <div class="card card-sage">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="22" height="22" style="flex-shrink:0">
+                <circle cx="256" cy="256" r="224" fill="none" stroke="#e8a87c" stroke-width="32"/>
+                <circle cx="256" cy="256" r="144" fill="none" stroke="#e8a87c" stroke-width="14.4" opacity="0.55"/>
+                <circle cx="256" cy="256" r="56" fill="#e8a87c"/>
+              </svg>
+              <h3>trail</h3>
+            </div>
+            <p style="font-size:13px; color:var(--muted)">Din second brain — kompilerer ekspertviden til en levende, søgbar vidensgraf. Grundlag for AI-assistenter der taler med brandets stemme.</p>
+          </div>
+          <div class="card card-sage">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="26" height="26" style="flex-shrink:0;opacity:.9">
+                <path d="M16 64 C16 64, 40 24, 64 24 C88 24, 112 64, 112 64 C112 64, 88 104, 64 104 C40 104, 16 64, 16 64 Z" fill="none" stroke="#F5F6FA" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M52 48 L48 48 C45 48, 44 50, 44 52 L44 58 C44 60, 42 62, 40 64 C42 66, 44 68, 44 70 L44 76 C44 78, 45 80, 48 80 L52 80" fill="none" stroke="#F5F6FA" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M76 48 L80 48 C83 48, 84 50, 84 52 L84 58 C84 60, 86 62, 88 64 C86 66, 84 68, 84 70 L84 76 C84 78, 83 80, 80 80 L76 80" fill="none" stroke="#F5F6FA" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <h3>buddy</h3>
+            </div>
+            <p style="font-size:13px; color:var(--muted)">Orkestrerer 15+ AI-sessioner på tværs af repos. Kodegennemgang, peer-koordinering, kvalitetssikring i realtid.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 3 TRAIL ══════════ -->
+  <section class="slide" data-label="Trail — Videnplatform">
+    <div class="max-w w-full" style="margin-top:16px">
+      <div class="eyebrow">Trail by broberg.ai · trailmem.com</div>
+      <h2>Ikke RAG. Ikke søgning.<br><em>Kompileret viden.</em></h2>
+      <div class="divider" style="margin-top:20px"></div>
+      <div class="grid-2" style="margin-top:26px; gap:20px; align-items:start">
+        <div>
+          <p class="lead" style="font-size:14px">
+            Trail er en <strong>knowledge compilation engine</strong> — inspireret af Vannevar Bushs Memex (1945).
+          </p>
+          <p class="lead" style="font-size:14px; margin-top:12px">
+            I stedet for at fragmentere dokumenter i søgechunks, <strong>kompilerer Trail dem til 5–15 sammenhængende Neurons</strong>
+            med krydsreferencer. Vidensbasen vokser og forbedres med hver tilføjelse.
+          </p>
+          <div class="quote" style="margin-top:20px; font-size:16px">
+            "The LLM proposes, you dispose.<br>Curator, not dictator."
+          </div>
+          <div style="margin-top:20px">
+            <div style="font-size:12px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--sage); margin-bottom:10px">Hvad Trail kan indlæse</div>
+            <div class="flow">
+              <span class="flow-step">PDF</span><span class="flow-arrow">→</span>
+              <span class="flow-step">DOCX/PPTX</span><span class="flow-arrow">→</span>
+              <span class="flow-step">Billeder</span><span class="flow-arrow">→</span>
+              <span class="flow-step">Lyd (Whisper)</span><span class="flow-arrow">→</span>
+              <span class="flow-step">Web clips</span><span class="flow-arrow">→</span>
+              <span class="flow-step">Markdown</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <div class="card" style="padding:20px 22px">
+            <div style="font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--sage); margin-bottom:10px">Forskellig fra RAG</div>
+            <table class="ctable">
+              <thead><tr><th>Dimension</th><th>Traditionel RAG</th><th>Trail</th></tr></thead>
+              <tbody>
+                <tr><td>Arbejdsmodel</td><td>Query-time retrieval</td><td>Ingest-time kompilering</td></tr>
+                <tr><td>Videnakkumulering</td><td>Statiske chunks</td><td>Wiki vokser over tid</td></tr>
+                <tr><td>Krydsreferencer</td><td>Implicit (semantisk)</td><td>Semantiske neuron-forbindelser</td></tr>
+                <tr><td>Kvalitetssikring</td><td>Ingen</td><td>Kureret kø</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="grid-2" style="gap:12px">
+            <div class="card card-sage" style="padding:18px 20px; text-align:center">
+              <div class="stat-num" style="font-size:38px">49+</div>
+              <div class="stat-label">features i<br>produktion</div>
+            </div>
+            <div class="card card-sage" style="padding:18px 20px; text-align:center">
+              <div class="stat-num" style="font-size:38px">0</div>
+              <div class="stat-label">brudte links<br>i videngrafen</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 4 AI ASSISTENT DEMO ══════════ -->
+  <section class="slide" data-label="AI Assistent · FysioDK Case">
+    <div class="max-w w-full" style="margin-top:12px">
+      <div class="eyebrow">Case · FysioDK Aalborg Sport × Trail × @webhouse/cms</div>
+      <div class="grid-2" style="gap:24px; align-items:start; margin-top:10px">
+
+        <!-- Left: intro + capabilities -->
+        <div>
+          <h2 style="font-size:clamp(26px,3.2vw,44px)">Fra symptom<br>til booking.<br><em>Automatisk.</em></h2>
+          <div class="divider" style="margin-top:16px"></div>
+          <p class="lead" style="font-size:13px; margin-top:4px">
+            FysioDK Aalborg Sport har en AI-assistent drevet af <strong>Trail</strong> som vidensbase —
+            trænet på klinikkens eget materiale, integreret direkte på @webhouse/cms sitet.
+          </p>
+          <div style="margin-top:16px; display:flex; flex-direction:column; gap:6px">
+            <div style="font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center"><span style="color:var(--sage)">✓</span> Matcher symptomer til rette specialist</div>
+            <div style="font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center"><span style="color:var(--sage)">✓</span> Booker tid direkte fra chatten</div>
+            <div style="font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center"><span style="color:var(--sage)">✓</span> Vejleder om pris og forsikring</div>
+            <div style="font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center"><span style="color:var(--sage)">✓</span> Svarer på FAQ 24/7</div>
+            <div style="font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center"><span style="color:var(--sage)">✓</span> Taler klinikkens eget fagsprog</div>
+            <div style="font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center"><span style="color:var(--sage)">✓</span> GDPR-compliant, no hallucination</div>
+          </div>
+          <div style="margin-top:16px; background:var(--sage-glow2); border:1px solid rgba(154,189,179,.2); border-radius:10px; padding:12px 14px">
+            <div style="font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--sage); margin-bottom:6px">Trail · Vidensbase</div>
+            <p style="font-size:12px; color:var(--muted); line-height:1.6">Jo mere klinikken publicerer, jo klogere bliver assistenten. Trail kompilerer nyt materiale automatisk og krydsreferencer det med eksisterende viden.</p>
+          </div>
+          <div style="margin-top:12px">
+            <div style="font-size:11px; color:var(--muted); margin-bottom:8px">Klik for at se et scenarie:</div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px">
+              <button class="chat-suggest" onclick="chatSuggest('skulder',this)">😣 Skuldersmerter</button>
+              <button class="chat-suggest" onclick="chatSuggest('ryg',this)">🔩 Ryg + udstråling</button>
+              <button class="chat-suggest" onclick="chatSuggest('nakke',this)">💻 Nakke + hovedpine</button>
+              <button class="chat-suggest" onclick="chatSuggest('massage',this)">💆 Sportsmassage</button>
+              <button class="chat-suggest" onclick="chatSuggest('træning',this)">🏋️ Genoptræning</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: interactive chat -->
+        <div style="display:flex; flex-direction:column;">
+          <div id="chat-widget" style="background:rgba(0,0,0,.35); border:1px solid rgba(154,189,179,.2); border-radius:16px; overflow:hidden; display:flex; flex-direction:column; height:420px">
+            <!-- Header -->
+            <div style="padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.07); display:flex; align-items:center; gap:10px; background:rgba(154,189,179,.05)">
+              <div style="width:32px; height:32px; background:var(--sage-glow); border:1px solid rgba(154,189,179,.3); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px">🏥</div>
+              <div>
+                <div style="font-size:13px; font-weight:600">FysioDK Aalborg Sport</div>
+                <div style="font-size:11px; color:var(--sage); display:flex; align-items:center; gap:5px"><span style="width:6px; height:6px; background:#4ade80; border-radius:50%; display:inline-block"></span> AI-assistent · Online nu</div>
+              </div>
+            </div>
+            <!-- Messages -->
+            <div id="chat-messages" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; scroll-behavior:smooth">
+              <div class="msg-ai" style="background:rgba(154,189,179,.1); border:1px solid rgba(154,189,179,.18); border-radius:12px 12px 12px 3px; padding:10px 14px; font-size:13px; max-width:88%; line-height:1.6">
+                Hej! Jeg er FysioDK Aalborg Sports AI-assistent. Jeg kan hjælpe dig med at finde den rette behandler, svare på spørgsmål om vores ydelser, og booke en tid. Hvad kan jeg hjælpe dig med? 😊
+              </div>
+            </div>
+            <!-- Input -->
+            <div style="padding:12px 14px; border-top:1px solid rgba(255,255,255,.07); display:flex; gap:8px; background:rgba(0,0,0,.2)">
+              <input id="chat-input" type="text" placeholder="Skriv dit spørgsmål..."
+                style="flex:1; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:9px 14px; font-size:13px; color:var(--light); font-family:var(--font-body); outline:none; transition:border-color .2s"
+                onfocus="this.style.borderColor='rgba(154,189,179,.5)'"
+                onblur="this.style.borderColor='rgba(255,255,255,.1)'"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();chatSend();}"
+              />
+              <button onclick="chatSend()" style="background:var(--sage); border:none; border-radius:10px; width:38px; height:38px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .2s; flex-shrink:0"
+                onmouseover="this.style.background='var(--sage-light)'" onmouseout="this.style.background='var(--sage)'">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M14 8L2 2l2.5 6L2 14l12-6z" fill="#262830"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 5 CMS PLATFORM ══════════ -->
+  <section class="slide" data-label="@webhouse/cms — Platformen">
+    <div class="max-w w-full" style="margin-top:16px">
+      <div class="eyebrow">@webhouse/cms · webhouse.app · docs.webhouse.app</div>
+      <h2>Et CMS bygget<br>til <em>AI-æraen.</em></h2>
+      <div class="divider" style="margin-top:20px"></div>
+      <div class="grid-2" style="margin-top:24px; gap:20px; align-items:start">
+        <div>
+          <p class="lead" style="font-size:14px">
+            <strong>Ikke WordPress. Ikke Wix.</strong> Et fundament bygget fra bunden — filbaseret JSON-indhold,
+            framework-agnostisk, AI-native fra dag ét.
+          </p>
+
+          <table class="ctable" style="margin-top:18px">
+            <thead><tr><th>Egenskab</th><th>WordPress</th><th>@webhouse/cms</th></tr></thead>
+            <tbody>
+              <tr><td>Loadtid (mobil)</td><td>3–6 sekunder</td><td>0.4–0.8 sekunder</td></tr>
+              <tr><td>Google Lighthouse</td><td>55–70</td><td>95–100</td></tr>
+              <tr><td>Sikkerhed</td><td>43% af alle hacks</td><td>Ingen CMS-angreb</td></tr>
+              <tr><td>AI-integration</td><td>Plugin-baseret</td><td>Native · 64 tools</td></tr>
+              <tr><td>GEO (AI-søgemaskiner)</td><td>Ingen</td><td>llms.txt · RSS · JSON-LD</td></tr>
+            </tbody>
+          </table>
+
+          <div class="tags" style="margin-top:16px">
+            <span class="tag">22 felttyper</span>
+            <span class="tag">Statisk output</span>
+            <span class="tag">Git-versioneret indhold</span>
+            <span class="tag">Next.js · Astro · Hugo · Django</span>
+            <span class="tag">52+ milestones i prod</span>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <div class="card card-sage" style="padding:18px 20px">
+            <h3 style="margin-bottom:8px">AI Lock — unik feature</h3>
+            <p style="font-size:13px; color:var(--muted); line-height:1.65">
+              Feltbaseret content-beskyttelse. AI'en kan ikke overskrive hvad et menneske har redigeret.
+              <strong>Det eneste CMS i verden med denne funktion.</strong>
+              Auto-låser ved menneskelig redigering, manuel låsning mulig.
+            </p>
+          </div>
+          <div class="card card-sage" style="padding:18px 20px">
+            <h3 style="margin-bottom:8px">MCP — 21 tools til AI-systemer</h3>
+            <p style="font-size:13px; color:var(--muted); line-height:1.65">
+              To MCP-servere: én public read-only og én autentificeret admin med fuld CRUD.
+              Ethvert AI-system (Claude, GPT, Gemini) kan læse og skrive indhold via standardprotokol.
+            </p>
+          </div>
+          <div class="card" style="padding:18px 20px">
+            <h3 style="margin-bottom:8px">GEO — Generative Engine Optimization</h3>
+            <p style="font-size:13px; color:var(--muted); line-height:1.65">
+              Automatisk <code style="font-size:11px; background:rgba(255,255,255,.08); padding:1px 5px; border-radius:4px">llms.txt</code>, <code style="font-size:11px; background:rgba(255,255,255,.08); padding:1px 5px; border-radius:4px">llms-full.txt</code>, JSON-LD og RSS.
+              Sikrer synlighed i ChatGPT, Perplexity og Gemini — ikke kun Google.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 6 AI AGENTER ══════════ -->
+  <section class="slide" data-label="AI Agenter · Kurator-kø">
+    <div class="max-w w-full" style="margin-top:16px">
+      <div class="eyebrow">@webhouse/cms · Agents &amp; Workflows</div>
+      <h2>Agenter der arbejder.<br><em>Du godkender.</em></h2>
+      <div class="divider" style="margin-top:20px"></div>
+      <div class="grid-2" style="margin-top:24px; gap:22px; align-items:start">
+        <div>
+          <p class="lead" style="font-size:14px; margin-bottom:16px">
+            CMS'et indeholder et komplet agent-system. Agenter kører <strong>100% autonomt</strong>
+            eller via en <strong>Kurator-kø</strong> hvor du godkender hvert forslag inden publicering.
+          </p>
+
+          <!-- Agent cards mimicking screenshot -->
+          <div class="grid-2" style="gap:10px">
+            <div class="agent-card">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px">
+                <div style="display:flex; align-items:center"><span class="agent-dot"></span><span style="font-size:14px; font-weight:600">Content Writer</span></div>
+                <span class="tag-dark" style="font-size:11px; padding:2px 8px">Content Writer</span>
+              </div>
+              <div style="font-size:12px; color:var(--muted)">Genereret · 100% approval</div>
+            </div>
+            <div class="agent-card">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px">
+                <div style="display:flex; align-items:center"><span class="agent-dot"></span><span style="font-size:14px; font-weight:600">SEO Optimizer</span></div>
+                <span class="tag-dark" style="font-size:11px; padding:2px 8px">SEO</span>
+              </div>
+              <div style="font-size:12px; color:var(--muted)">Meta · JSON-LD · links</div>
+            </div>
+            <div class="agent-card">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px">
+                <div style="display:flex; align-items:center"><span class="agent-dot"></span><span style="font-size:14px; font-weight:600">Translator</span></div>
+                <span class="tag-dark" style="font-size:11px; padding:2px 8px">Translator</span>
+              </div>
+              <div style="font-size:12px; color:var(--muted)">Dansk · EN · DE · FR</div>
+            </div>
+            <div class="agent-card">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px">
+                <div style="display:flex; align-items:center"><span class="agent-dot inactive"></span><span style="font-size:14px; font-weight:600">Content Refresher</span></div>
+                <span class="tag-dark" style="font-size:11px; padding:2px 8px">Refresher</span>
+              </div>
+              <div style="font-size:12px; color:var(--muted)">Opdaterer gammelt indhold</div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px; background:var(--sage-glow2); border:1px solid rgba(154,189,179,.2); border-radius:10px; padding:12px 16px">
+            <div style="font-size:12px; color:var(--sage); font-weight:600; margin-bottom:6px">Kurator-kø · Fuld kontrol</div>
+            <p style="font-size:13px; color:var(--muted); line-height:1.6">Alle agent-forslag lander i en kø. Du ser diff (før/efter), godkender med ét klik eller afviser. Ingen overraskelser.</p>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <div class="card card-sage" style="padding:18px 20px">
+            <h3 style="margin-bottom:10px">Hvad agenter kan gøre for SocialMates klienter</h3>
+            <div style="display:flex; flex-direction:column; gap:8px">
+              <div style="font-size:13px; color:var(--muted); display:flex; gap:8px; line-height:1.5">
+                <span class="sage; flex-shrink:0">→</span>
+                <span><strong>Ugentlig content-produktion</strong> — agent skriver blogindlæg baseret på jeres strategi-brief</span>
+              </div>
+              <div style="font-size:13px; color:var(--muted); display:flex; gap:8px; line-height:1.5">
+                <span class="sage; flex-shrink:0">→</span>
+                <span><strong>Automatisk SEO-tjek</strong> — agent optimerer alle nye sider inden publicering</span>
+              </div>
+              <div style="font-size:13px; color:var(--muted); display:flex; gap:8px; line-height:1.5">
+                <span class="sage; flex-shrink:0">→</span>
+                <span><strong>Oversættelse på kommando</strong> — hele sitet til engelsk på under en time</span>
+              </div>
+              <div style="font-size:13px; color:var(--muted); display:flex; gap:8px; line-height:1.5">
+                <span class="sage; flex-shrink:0">→</span>
+                <span><strong>Indholdsfornyelse</strong> — refresher-agent opdaterer forældet content automatisk</span>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="padding:18px 20px">
+            <h3 style="margin-bottom:8px">Skræddersyede agenter til brandet</h3>
+            <p style="font-size:13px; color:var(--muted); line-height:1.65">
+              Agenter kan konfigureres med tone-of-voice, målgruppe, skrivestil og brand guidelines.
+              "Fysio Content Writer" kender FysioDK's fagsprog — "Sanne Writer" kender healingverdenen.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 7 58 TOOLS + APP ══════════ -->
+  <section class="slide" data-label="64 Værktøjer · Native App">
+    <div class="max-w w-full" style="margin-top:16px">
+      <div class="eyebrow">@webhouse/cms · Chat Platform</div>
+      <h2>64 værktøjer.<br><em>Et site du kan tale med.</em></h2>
+      <div class="divider" style="margin-top:20px"></div>
+      <div class="grid-2" style="margin-top:24px; gap:22px; align-items:start">
+        <div>
+          <p class="lead" style="font-size:14px; margin-bottom:16px">
+            CMS'et indeholder en komplet <strong>chat-platform med 64 MCP-værktøjer</strong>.
+            Du kan styre hele dit site via naturlig dialog — på dansk, engelsk eller ethvert andet sprog.
+          </p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+            <div class="tool-badge">📄 Indhold — opret, rediger, publicer, klon, gendansk</div>
+            <div class="tool-badge">🤖 AI-generering — skriv, omskriv, oversæt, widgets</div>
+            <div class="tool-badge">🖼️ Medie — søg og browse mediebibliotek</div>
+            <div class="tool-badge">🦾 Agenter — opret, kør, godkend via curation queue</div>
+            <div class="tool-badge">🗓️ Planlægning — publicer fremad, se revisionshistorik</div>
+            <div class="tool-badge">⚙️ Site — byg, deploy, Lighthouse, linktjek</div>
+            <div class="tool-badge">📬 Formularer — læs kontaktformular-indmeldelser</div>
+            <div class="tool-badge">🧠 Hukommelse — gem og hent på tværs af samtaler</div>
+            <div class="tool-badge">🌐 Web — søg nettet, hent indhold fra URLs</div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <div style="background:rgba(0,0,0,.35); border:1px solid rgba(154,189,179,.25); border-radius:14px; padding:20px 22px">
+            <div style="font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--sage); margin-bottom:14px">Eksempel · Chat med dit site</div>
+            <div style="display:flex; flex-direction:column; gap:10px">
+              <div style="background:rgba(255,255,255,.06); border-radius:10px 10px 10px 2px; padding:9px 13px; font-size:13px; max-width:88%">"Skriv en artikel om 5 tegn på overtræning — på dansk, SEO-optimeret, til vores sportsklinik."</div>
+              <div style="background:var(--sage-glow2); border:1px solid rgba(154,189,179,.2); border-radius:10px 10px 2px 10px; padding:9px 13px; font-size:13px; max-width:92%; align-self:flex-end">"Artiklen er skrevet (847 ord), SEO-score 94, intern linking til 3 relevante sider. <span class="sage">Publicere nu?</span>"</div>
+              <div style="background:rgba(255,255,255,.06); border-radius:10px 10px 10px 2px; padding:9px 13px; font-size:13px; max-width:70%">"Ja — og oversæt til engelsk."</div>
+              <div style="background:var(--sage-glow2); border:1px solid rgba(154,189,179,.2); border-radius:10px 10px 2px 10px; padding:9px 13px; font-size:13px; max-width:88%; align-self:flex-end">"Publiceret på dansk og engelsk. Sitemap opdateret. <span class="sage">✓ Done</span>"</div>
+            </div>
+          </div>
+          <div class="card card-orange" style="padding:18px 20px">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px">
+              <span style="font-size:22px">📱</span>
+              <h3>Native App — på vej</h3>
+            </div>
+            <p style="font-size:13px; color:var(--muted); line-height:1.65">
+              Hele CMS-oplevelsen i en iOS/Android app. <strong>Bare tal til dit website.</strong>
+              Diktér en opdatering, få den publiceret. Godkend agent-forslag fra sofaen.
+              App Store og Google Play.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 8 MULIGHED ══════════ -->
+  <section class="slide" data-label="Muligheden for SocialMate">
+    <div class="max-w w-full" style="margin-top:16px">
+      <div class="eyebrow">Hvad det konkret betyder</div>
+      <h2>Hvad hvis jeres klienter<br>fik <em>mere</em> for de samme kroner?</h2>
+      <div class="divider" style="margin-top:20px"></div>
+      <div class="grid-2" style="margin-top:24px; gap:22px">
+        <div>
+          <table class="ctable">
+            <thead><tr><th>Dimension</th><th>I dag (typisk)</th><th>Med AI-platform</th></tr></thead>
+            <tbody>
+              <tr><td>Indholdsproduktion</td><td>Manuelt, tid = penge</td><td>Agent drafts + fin. touch</td></tr>
+              <tr><td>SEO &amp; GEO</td><td>Manuel analyse</td><td>Automatisk + AI-søgning</td></tr>
+              <tr><td>Site-opdateringer</td><td>Kræver udviklertimer</td><td>Klienten taler til sitet</td></tr>
+              <tr><td>Flersproglig</td><td>Dyrt at oversætte</td><td>AI på minutter</td></tr>
+              <tr><td>Brand konsistens</td><td>Guidelines i PDF</td><td>AI kender brandet indefra</td></tr>
+              <tr><td>AI-assistent på site</td><td>Ikke muligt / dyrt</td><td>Trail + CMS native</td></tr>
+            </tbody>
+          </table>
+
+          <div class="quote" style="margin-top:20px; font-size:16px">
+            "Bureauer der integrerer AI rigtigt, vinder markedsandele."
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px; justify-content:center">
+          <div class="card card-sage" style="text-align:center; padding:28px">
+            <div class="stat-num">5×</div>
+            <div class="stat-label" style="margin-top:8px">mere indhold<br>samme resourcer</div>
+          </div>
+          <div class="card card-sage" style="text-align:center; padding:28px">
+            <div class="stat-num">95+</div>
+            <div class="stat-label" style="margin-top:8px">Lighthouse score<br>på alle sites</div>
+          </div>
+          <div class="card card-sage" style="text-align:center; padding:28px">
+            <div class="stat-num">∞</div>
+            <div class="stat-label" style="margin-top:8px">skalerbarhed<br>uden lineær vækst</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 9 SAMARBEJDE ══════════ -->
+  <section class="slide" data-label="Samarbejdsmodeller">
+    <div class="max-w w-full" style="margin-top:16px">
+      <div class="eyebrow">Konkrete samarbejdsmuligheder</div>
+      <h2>Tre veje vi<br>kan gå <em>sammen.</em></h2>
+      <div class="divider" style="margin-top:20px"></div>
+      <div style="margin-top:24px; display:flex; flex-direction:column; gap:16px">
+        <div class="card card-sage" style="padding:20px 24px">
+          <div style="display:flex; gap:18px; align-items:flex-start">
+            <div style="font-size:26px; min-width:40px">🌐</div>
+            <div>
+              <h3 style="margin-bottom:7px">1 — AI-native websites til jeres klienter</h3>
+              <p style="font-size:13px; color:var(--muted); line-height:1.7">Når en SocialMate-klient skal have nyt site, leverer vi det på @webhouse/cms — med AI-agenter, Trail-videnbase og 64 tools. I fokuserer på strategi og kampagner. Vi leverer det tekniske fundament. White-label eller co-branding efter behov.</p>
+              <div class="tags" style="margin-top:10px"><span class="tag">Kickback eller delt honorar</span><span class="tag">I holder klientrelationen</span><span class="tag">White-label muligt</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="padding:20px 24px">
+          <div style="display:flex; gap:18px; align-items:flex-start">
+            <div style="font-size:26px; min-width:40px">🧠</div>
+            <div>
+              <h3 style="margin-bottom:7px">2 — Brand Intelligence for klienter med dybde</h3>
+              <p style="font-size:13px; color:var(--muted); line-height:1.7">For klienter med faglig viden (klinikker, rådgivere, specialister) bygger vi en Trail-videnbase der kompilerer deres ekspertise. Resultatet: AI-assistent + indhold der lyder som eksperten — ikke som en generisk chatbot. Indhold der konverterer fordi det er autentisk.</p>
+              <div class="tags" style="margin-top:10px"><span class="tag">Autentisk ekspertstemme</span><span class="tag">AI-assistent på site</span><span class="tag">Løbende abonnement</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="padding:20px 24px">
+          <div style="display:flex; gap:18px; align-items:flex-start">
+            <div style="font-size:26px; min-width:40px">⚡</div>
+            <div>
+              <h3 style="margin-bottom:7px">3 — AI-workflow for SocialMate internt</h3>
+              <p style="font-size:13px; color:var(--muted); line-height:1.7">Vi bygger et internt AI-system der hjælper jeres team med content drafts, kampagnekopi og briefing-templates — tilpasset jeres processer og tone of voice. Jeres copywriters bruger tid på det der kræver menneskelig indsigt.</p>
+              <div class="tags" style="margin-top:10px"><span class="tag">Intern produktivitetsgevinst</span><span class="tag">Tilpasset SocialMates processer</span><span class="tag">Ingen template-indhold</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 10 NÆSTE SKRIDT ══════════ -->
+  <section class="slide" data-label="Næste skridt">
+    <div class="max-w w-full text-center" style="margin-top:36px">
+      <div class="eyebrow">Lad os komme i gang</div>
+      <h1 style="font-size:clamp(34px,4.8vw,62px)">Hvad giver mening<br>at prøve <em>af?</em></h1>
+      <div class="divider divider-center" style="margin-top:24px"></div>
+      <p class="lead" style="margin:20px auto 0; text-align:center; font-size:14px">
+        Ingen stor forpligtelse fra starten. Det smarteste første skridt er et konkret mini-projekt
+        der viser værdien i praksis — for en rigtig klient, med rigtige resultater.
+      </p>
+
+      <div class="grid-3" style="margin-top:36px; gap:16px; text-align:left">
+        <div class="card card-sage" style="padding:24px">
+          <div style="font-size:26px; margin-bottom:12px">🔍</div>
+          <h3 style="margin-bottom:8px">Analyse af én klient</h3>
+          <p style="font-size:13px; color:var(--muted); line-height:1.65">Vi kigger på én klient og kortlægger hvad AI konkret ville gøre for dem. Ingen forpligtelse.</p>
+        </div>
+        <div class="card" style="padding:24px">
+          <div style="font-size:26px; margin-bottom:12px">⚡</div>
+          <h3 style="margin-bottom:8px">AI-content demo</h3>
+          <p style="font-size:13px; color:var(--muted); line-height:1.65">Vi genererer indhold til en rigtig klient med AI. I vurderer kvalitet og hvad det sparer af tid.</p>
+        </div>
+        <div class="card" style="padding:24px">
+          <div style="font-size:26px; margin-bottom:12px">🌐</div>
+          <h3 style="margin-bottom:8px">Prototype på 2 uger</h3>
+          <p style="font-size:13px; color:var(--muted); line-height:1.65">Vælg en klient der trænger til nyt site. Vi bygger prototype på @webhouse/cms på 2 uger.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:36px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap">
+        <a href="mailto:christian@broberg.ai" class="btn btn-orange">
+          <span>📧</span> christian@broberg.ai
+        </a>
+        <a href="tel:+4522680880" class="btn btn-outline">
+          <span>📞</span> +45 22 68 08 80
+        </a>
+        <a href="https://webhouse.dk" class="btn btn-outline" target="_blank">
+          <span>🌐</span> webhouse.dk
+        </a>
+      </div>
+      <p style="font-size:12px; color:var(--muted); margin-top:18px">Mødes på Gravensgade, Aalborg — eller online. Hvad der passer jer bedst.</p>
+    </div>
+  </section>
+
+</div>
+
+<div id="nav">
+  <button class="nav-btn" id="prev" onclick="go(-1)" disabled>←</button>
+  <div id="dots"></div>
+  <button class="nav-btn" id="next" onclick="go(1)">→</button>
+  <div id="slide-counter">1 / 10</div>
+</div>
+
+<script>
+  /* ── Chat styles ── */
+  const chatStyle = document.createElement('style');
+  chatStyle.textContent = `
+    .chat-suggest { background:rgba(154,189,179,.1); border:1px solid rgba(154,189,179,.25); color:#b8d4cf; border-radius:20px; padding:5px 12px; font-size:12px; font-family:'DM Sans',-apple-system,sans-serif; cursor:pointer; transition:background .2s; }
+    .chat-suggest:active, .chat-suggest.active { background:rgba(154,189,179,.3); border-color:rgba(154,189,179,.5); }
+    .chat-suggest:hover { background:rgba(154,189,179,.22); }
+    #chat-messages::-webkit-scrollbar { width:4px; }
+    #chat-messages::-webkit-scrollbar-thumb { background:rgba(154,189,179,.2); border-radius:2px; }
+    .cmsg-ai { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.07); border-radius:12px 12px 12px 3px; padding:10px 13px; font-size:13px; max-width:90%; line-height:1.6; }
+    .cmsg-usr { background:rgba(154,189,179,.12); border:1px solid rgba(154,189,179,.2); border-radius:12px 12px 3px 12px; padding:10px 13px; font-size:13px; max-width:88%; align-self:flex-end; line-height:1.6; }
+    .ctyping { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.07); border-radius:12px; padding:11px 14px; display:flex; gap:4px; align-items:center; }
+    .cdot { display:inline-block; width:6px; height:6px; background:rgba(154,189,179,.5); border-radius:50%; animation:cBounce 1.2s infinite; }
+    .cdot:nth-child(2){animation-delay:.2s} .cdot:nth-child(3){animation-delay:.4s}
+    @keyframes cBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+    .mcard { background:rgba(0,0,0,.25); border:1px solid rgba(154,189,179,.2); border-radius:12px; padding:14px 16px; animation:cardIn .35s ease both; }
+    @keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    .mcard-name { font-size:14px; font-weight:600; color:#f5f6fa; }
+    .mcard-role { font-size:12px; color:rgba(154,189,179,.8); margin-top:2px; }
+    .mcard-tags { display:flex; flex-wrap:wrap; gap:5px; margin:10px 0; }
+    .mtag { background:rgba(154,189,179,.1); border:1px solid rgba(154,189,179,.2); color:#b8d4cf; border-radius:100px; padding:3px 9px; font-size:11px; }
+    .mavail { font-size:12px; color:#4ade80; }
+    .mscore { font-size:11px; color:rgba(154,189,179,.7); margin-top:2px; }
+    .mbtn { background:var(--sage); color:#262830; border:none; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:600; cursor:pointer; transition:background .2s; }
+    .mbtn:hover { background:#b8d4cf; }
+    .bw { background:rgba(0,0,0,.2); border:1px solid rgba(154,189,179,.15); border-radius:10px; padding:14px; margin-top:10px; }
+    .bw-title { font-size:13px; font-weight:600; margin-bottom:12px; }
+    .bw-days { display:flex; gap:6px; margin-bottom:12px; }
+    .bwd { flex:1; text-align:center; padding:7px 4px; border:1px solid rgba(255,255,255,.08); border-radius:8px; font-size:11px; cursor:pointer; transition:all .2s; }
+    .bwd span { display:block; font-size:10px; color:rgba(245,246,250,.4); margin-top:2px; }
+    .bwd.active { background:var(--sage); color:#262830; border-color:var(--sage); }
+    .bwd.active span { color:rgba(38,40,48,.7); }
+    .bwd.na { opacity:.3; pointer-events:none; }
+    .bw-times { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+    .bwt { padding:6px 12px; border:1px solid rgba(255,255,255,.08); border-radius:8px; font-size:12px; cursor:pointer; transition:all .2s; }
+    .bwt.active { background:var(--sage); color:#262830; border-color:var(--sage); }
+    .bwt.na { opacity:.25; pointer-events:none; }
+    .bw-confirm { width:100%; background:var(--sage); color:#262830; border:none; border-radius:8px; padding:10px; font-size:12px; font-weight:600; cursor:pointer; transition:background .2s; }
+    .bw-confirm:hover { background:#b8d4cf; }
+    .bw-confirmed { background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.2); border-radius:8px; padding:14px; font-size:13px; line-height:1.6; color:#4ade80; }
+  `;
+  document.head.appendChild(chatStyle);
+
+  /* ── Chat knowledge base ── */
+  // ── Scenario data ──
+  const CDATA = {
+    skulder:{
+      steps:[
+        {role:'ai',  text:'Hej! Beskriv gerne hvad der generer dig — hvornår startede det, og hvad gør det værre?', delay:400},
+        {role:'usr', text:'Jeg har haft smerter i min højre skulder i ca. 3 uger. Det gør mest ondt når jeg løfter armen op over skulderhøjde.', delay:3800},
+        {role:'ai',  text:'Tak. Mærker du smerten mest foran på skulderen, ude på siden, eller bagpå? Og er der svaghed eller klikkelyd?', delay:8200},
+        {role:'usr', text:'Mest ude på siden. Ingen klikkelyd, men lidt svaghed når jeg rækker ud til siden.', delay:13000},
+        {role:'ai',  text:'Det lyder som en klassisk impingement-problematik — smerten i ydersiden ved løft er meget typisk. Her er dem jeg anbefaler:', delay:17500, trigger:true},
+      ],
+      symptoms:['😣 Skuldersmerter (3 uger)','📍 Smerte på ydersiden','💪 Svaghed ved løft'],
+      matches:[
+        {emoji:'👩‍⚕️', name:'Anna Kjærgaard', role:'Autoriseret fysioterapeut', tags:['Skulder','Sportsskader','Dry needling'], avail:'Ledig i dag', score:'98% match'},
+        {emoji:'👨‍⚕️', name:'Lars Mikkelsen', role:'Specialfysioterapeut', tags:['Skulder','Manuel terapi','Overekstremiteter'], avail:'Ledig torsdag', score:'91% match'},
+      ]
+    },
+    ryg:{
+      steps:[
+        {role:'ai',  text:'Hej! Hvad kan jeg hjælpe dig med i dag?', delay:400},
+        {role:'usr', text:'Jeg har ondt i lænden og det stråler ud i venstre ben ned til knæet. Startede efter jeg løftede noget tungt for 10 dage siden.', delay:3800},
+        {role:'ai',  text:'Stråler smerten ned bagsiden af benet, eller mere ude på ydersiden? Og har du prikken eller følelsesløshed i foden?', delay:8500},
+        {role:'usr', text:'Bagsiden hele vejen ned. Lidt prikken i selve foden også.', delay:13500},
+        {role:'ai',  text:'Det er et klassisk billede på nerveirritation fra lænden — muligvis discusprolaps der berører ischiasnerven. Vigtigt at få det undersøgt snart:', delay:18000, trigger:true},
+      ],
+      symptoms:['🔩 Lændesmerter (10 dage)','⚡ Udstråling til ben','🦶 Prikken i fod'],
+      matches:[
+        {emoji:'🔩', name:'Mads Thornberg', role:'Kiropraktor', tags:['Rygsøjle','Discus','Nerveirritation'], avail:'Ledig i morgen', score:'97% match'},
+        {emoji:'👨‍⚕️', name:'Lars Mikkelsen', role:'Specialfysioterapeut', tags:['Lænde','McKenzie-metoden','Ryg'], avail:'Ledig fredag', score:'88% match'},
+      ]
+    },
+    nakke:{
+      steps:[
+        {role:'ai',  text:'Hej! Fortæl mig om dine symptomer.', delay:400},
+        {role:'usr', text:'Stiv nakke og daglig hovedpine. Sidder mange timer foran skærm og har haft det i en måneds tid.', delay:3500},
+        {role:'ai',  text:'Sidder hovedpinen mest baghovedet og breder sig frem over panden — eller mere ude på tindingerne?', delay:7800},
+        {role:'usr', text:'Starter altid baghovedet og breder sig frem mod panden. Lidt svimmelhed ind imellem.', delay:12500},
+        {role:'ai',  text:'Klassisk cervikogen spændingshovedpine — nakken sender smerten frem. Effektivt at behandle:', delay:17000, trigger:true},
+      ],
+      symptoms:['💻 Nakke + skærmarbejde','🤕 Daglig baghoved-pine','😵 Periodisk svimmelhed'],
+      matches:[
+        {emoji:'🔩', name:'Mads Thornberg', role:'Kiropraktor', tags:['Nakke','Cervikogen hovedpine','Manipulation'], avail:'Ledig i dag', score:'95% match'},
+        {emoji:'💆', name:'Sara Lund', role:'Massageterapeut', tags:['Nakkemassage','Triggerpunkt','Spændingshovedpine'], avail:'Ledig i morgen', score:'87% match'},
+      ]
+    },
+    massage:{
+      steps:[
+        {role:'ai',  text:'Hej! Hvad kan jeg hjælpe dig med?', delay:400},
+        {role:'usr', text:'Jeg er rigtig spændt i skuldrene og nakken. Sidder meget ved computer og vil gerne have en god sportsmassage.', delay:3800},
+        {role:'ai',  text:'Er det primært muskelspændinger du mærker, eller har du også smerter i led eller en specifik skade?', delay:8000},
+        {role:'usr', text:'Mest muskelspændinger. Ingen skade, bare rigtig hård og træt i skuldrene.', delay:12500},
+        {role:'ai',  text:'Perfekt til sportsmassage. Sara er vores massageterapeut med speciale i netop disse spændingsmønstre:', delay:16500, trigger:true},
+      ],
+      symptoms:['💆 Muskelspændinger','🖥️ Computerbetinget','🚫 Ingen specifik skade'],
+      matches:[
+        {emoji:'💆', name:'Sara Lund', role:'Massageterapeut', tags:['Sportsmassage','Triggerpunkt','Klassisk massage'], avail:'Ledig i dag', score:'99% match'},
+        {emoji:'👩‍⚕️', name:'Anna Kjærgaard', role:'Fysioterapeut', tags:['Skulder','Muskulær behandling','Dry needling'], avail:'Ledig torsdag', score:'78% match'},
+      ]
+    },
+    træning:{
+      steps:[
+        {role:'ai',  text:'Hej! Hvad er du på udkig efter?', delay:400},
+        {role:'usr', text:'Jeg er netop færdig med et fysioterapiforløb for min ryg og vil starte med styrketræning og genoptræning. Ved ikke hvor jeg skal begynde.', delay:4500},
+        {role:'ai',  text:'Super godt at behandlingen er overstået! Hvad var diagnosen, og er der stadig begrænsninger du mærker?', delay:9500},
+        {role:'usr', text:'Lændediscus. Ikke smertefri 100% endnu men meget bedre. Vil undgå at starte forkert.', delay:14500},
+        {role:'ai',  text:'Fornuftig tilgang — vi bygger videre på det fysioterapeuten har lagt grundlag for:', delay:19500, trigger:true},
+      ],
+      symptoms:['🦴 Lændediscus (post-behandling)','⚠️ Delvist smertefri','🏋️ Klar til genoptræning'],
+      matches:[
+        {emoji:'🏋️', name:'Kasper Nielsen', role:'Personlig træner & genoptræning', tags:['Genoptræning','Ryg','Individuel plan'], avail:'Ledig mandag', score:'99% match'},
+        {emoji:'🥗', name:'Marie Dalgaard', role:'Ernæringsrådgiver', tags:['Muskelopbygning','Proteinindtag','Restitution'], avail:'Ledig onsdag', score:'74% match'},
+      ]
+    },
+  };
+
+  // ── Timer helpers ──
+  let cTimers = [];
+  function cT(fn, ms){ const id = setTimeout(fn, ms); cTimers.push(id); return id; }
+  function cClearAll(){ cTimers.forEach(clearTimeout); cTimers = []; }
+
+  // ── Week days for booking ──
+  function getWeekDays(){
+    const days=[], now=new Date();
+    const mon=new Date(now); mon.setDate(now.getDate()-((now.getDay()+6)%7));
+    const names=['Man','Tir','Ons','Tor','Fre'];
+    for(let i=0;i<5;i++){
+      const d=new Date(mon); d.setDate(mon.getDate()+i);
+      days.push({label:names[i], date:d.getDate()+'/'+(d.getMonth()+1), past:d<new Date(new Date().setHours(0,0,0,0))});
+    }
+    return days;
+  }
+
+  // ── DOM helpers ──
+  function cMsgs(){ return document.getElementById('chat-messages'); }
+
+  function cAddAi(text){
+    const el = document.createElement('div');
+    el.className = 'cmsg-ai'; el.textContent = text;
+    cMsgs().appendChild(el); cMsgs().scrollTop = 99999; return el;
+  }
+
+  function cAddUsr(text){
+    const el = document.createElement('div');
+    el.className = 'cmsg-usr'; el.textContent = text;
+    cMsgs().appendChild(el); cMsgs().scrollTop = 99999;
+  }
+
+  function cShowTyping(){
+    if(document.getElementById('c-typing')) return;
+    const el = document.createElement('div');
+    el.id='c-typing'; el.className='ctyping';
+    el.innerHTML='<span class="cdot"></span><span class="cdot"></span><span class="cdot"></span>';
+    cMsgs().appendChild(el); cMsgs().scrollTop=99999;
+  }
+  function cHideTyping(){ document.getElementById('c-typing')?.remove(); }
+
+  function cUserType(text, inp, onDone){
+    inp.value=''; inp.placeholder='';
+    let i=0;
+    function step(){
+      if(i<text.length){ inp.value+=text[i++]; cT(step, 30+Math.random()*22); }
+      else { cT(()=>{ inp.value=''; inp.placeholder='Skriv dit spørgsmål…'; if(onDone) onDone(); }, 300); }
+    }
+    step();
+  }
+
+  // ── Match cards (with symptom pills) ──
+  function cShowMatches(matches, symptoms){
+    // First: show symptom pills as AI message
+    if(symptoms && symptoms.length){
+      const pillEl = document.createElement('div');
+      pillEl.className = 'cmsg-ai';
+      pillEl.style.cssText += 'display:flex;flex-direction:column;gap:8px';
+      const pillLabel = document.createElement('div');
+      pillLabel.style.cssText = 'font-size:12px;color:rgba(154,189,179,.7);margin-bottom:4px;font-weight:500';
+      pillLabel.textContent = 'Identificerede symptomer:';
+      const pillRow = document.createElement('div');
+      pillRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px';
+      symptoms.forEach(s => {
+        const p = document.createElement('span');
+        p.style.cssText = 'background:rgba(154,189,179,.12);border:1px solid rgba(154,189,179,.3);color:#b8d4cf;border-radius:100px;padding:4px 11px;font-size:12px;font-weight:500';
+        p.textContent = s;
+        pillRow.appendChild(p);
+      });
+      pillEl.appendChild(pillLabel);
+      pillEl.appendChild(pillRow);
+      cMsgs().appendChild(pillEl);
+      cMsgs().scrollTop = 99999;
+    }
+
+    // Then: match cards
+    const el = document.createElement('div');
+    el.className = 'cmsg-ai';
+    el.style.padding = '0'; el.style.background = 'none'; el.style.border = 'none';
+    el.style.display = 'flex'; el.style.flexDirection = 'column'; el.style.gap = '8px';
+    matches.forEach((m,i) => {
+      const card = document.createElement('div');
+      card.className = 'mcard'; card.style.animationDelay = (i*.15)+'s';
+      card.innerHTML =
+        `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="font-size:22px">${m.emoji}</div>
+          <div><div class="mcard-name">${m.name}</div><div class="mcard-role">${m.role}</div></div>
+        </div>
+        <div class="mcard-tags">${m.tags.map(t=>`<span class="mtag">${t}</span>`).join('')}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
+          <div><div class="mavail">● ${m.avail}</div><div class="mscore">${m.score}</div></div>
+          <button class="mbtn" onclick="cBook('${m.name}','${m.emoji}')">Book tid →</button>
+        </div>`;
+      el.appendChild(card);
+    });
+    cMsgs().appendChild(el); cMsgs().scrollTop=99999;
+    cT(()=>cBook(matches[0].name, matches[0].emoji), 3200);
+  }
+
+  // ── Booking widget ──
+  window.cBook = function(name, emoji){
+    const firstName = name.split(' ')[0];
+    const days = getWeekDays();
+    let selDay=1, selTime='10:30';
+
+    const wrapper = document.createElement('div');
+    wrapper.className='cmsg-ai'; wrapper.style.maxWidth='96%';
+    const intro = document.createElement('div');
+    intro.style.cssText='font-size:13px;margin-bottom:10px';
+    intro.innerHTML=`Book tid med <strong>${name}</strong> — vælg dag og tidspunkt:`;
+
+    const bw = document.createElement('div'); bw.className='bw';
+
+    function render(){
+      bw.innerHTML=`<div class="bw-title">${emoji} ${name}</div>
+        <div class="bw-days">${days.map((d,i)=>`<div class="bwd${i===selDay?' active':''}${d.past?' na':''}" onclick="bSelD(${i})">${d.label}<span>${d.date}</span></div>`).join('')}</div>
+        <div class="bw-times">
+          <div class="bwt${selTime==='08:45'?' active':''}" onclick="bSelT('08:45')">08:45</div>
+          <div class="bwt${selTime==='10:00'?' active':''}" onclick="bSelT('10:00')">10:00</div>
+          <div class="bwt${selTime==='10:30'?' active':''}" onclick="bSelT('10:30')">10:30</div>
+          <div class="bwt na">12:00</div>
+          <div class="bwt${selTime==='13:30'?' active':''}" onclick="bSelT('13:30')">13:30</div>
+          <div class="bwt${selTime==='15:00'?' active':''}" onclick="bSelT('15:00')">15:00</div>
+        </div>
+        <button class="bw-confirm" onclick="bConfirm('${firstName}',this)">Book ${firstName} — ${days[selDay].label} ${days[selDay].date} kl. ${selTime} →</button>`;
+      cMsgs().scrollTop=99999;
+    }
+    window.bSelD = i=>{ selDay=i; render(); };
+    window.bSelT = t=>{ selTime=t; render(); };
+    render();
+
+    wrapper.appendChild(intro); wrapper.appendChild(bw);
+    cMsgs().appendChild(wrapper); cMsgs().scrollTop=99999;
+  };
+
+  window.bConfirm = function(firstName, btn){
+    btn.closest('.bw').innerHTML=`<div class="bw-confirmed">✅ Tak! Din tid med <strong>${firstName}</strong> er bekræftet.<br><span style="font-size:12px;opacity:.7;font-weight:400">Bekræftelse sendes på SMS og email — eller via vores app.</span></div>`;
+    cMsgs().scrollTop=99999;
+  };
+
+  // ── Run scripted scenario ──
+  function cRunScenario(key, btn){
+    cClearAll();
+    document.querySelectorAll('.chat-suggest').forEach(b=>b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    cMsgs().innerHTML='';
+    const inp = document.getElementById('chat-input');
+    const s = CDATA[key]; if(!s) return;
+
+    s.steps.forEach(step => {
+      if(step.role==='ai'){
+        cT(()=>{ cHideTyping(); cShowTyping(); }, Math.max(0, step.delay-1200));
+      }
+      if(step.role==='usr'){
+        cT(()=>cUserType(step.text, inp), Math.max(0, step.delay - step.text.length*28 - 600));
+      }
+      cT(()=>{
+        cHideTyping();
+        if(step.trigger){
+          cAddAi(step.text);
+          cT(()=>cShowMatches(s.matches, s.symptoms), 700);
+        } else {
+          if(step.role==='ai') cAddAi(step.text);
+          else cAddUsr(step.text);
+        }
+      }, step.delay);
+    });
+  }
+
+  // ── Free text send ──
+  function chatSend(){
+    const inp = document.getElementById('chat-input');
+    const txt = inp.value.trim(); if(!txt) return;
+    inp.value='';
+    cClearAll();
+    document.querySelectorAll('.chat-suggest').forEach(b=>b.classList.remove('active'));
+    cMsgs().innerHTML='';
+    cAddUsr(txt);
+    cT(cShowTyping, 500);
+    cT(()=>{ cHideTyping(); cAddAi('Tak for beskrivelsen. Jeg analyserer dine symptomer og finder de bedste behandlere til netop din situation…'); }, 2500);
+    cT(()=>cShowMatches(CDATA.skulder.matches, CDATA.skulder.symptoms), 5000);
+  }
+
+  function chatSuggest(key, btn){ cRunScenario(key, btn); }
+
+  // Auto-start first scenario when slide 4 becomes active
+  function maybeStartChat(){
+    if(cur === 3 && cMsgs() && cMsgs().children.length === 0){
+      cRunScenario('skulder', document.querySelector('.chat-suggest'));
+    }
+  }
+
+  /* ── Slide navigation ── */
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const label = document.getElementById('slide-label');
+  const counter = document.getElementById('slide-counter');
+  const dotsEl = document.getElementById('dots');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  let cur = 0;
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => { const diff = i - cur; if (diff !== 0) go(diff); };
+    dotsEl.appendChild(d);
+  });
+
+  function go(dir) {
+    const next = cur + dir;
+    if (next < 0 || next >= slides.length) return;
+    slides[cur].classList.remove('active');
+    slides[cur].classList.add('exit');
+    const old = cur;
+    cur = next;
+    setTimeout(() => slides[old].classList.remove('exit'), 550);
+    slides[cur].classList.add('active');
+    update();
+  }
+
+  function update() {
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === cur));
+    label.textContent = slides[cur].dataset.label || '';
+    counter.textContent = (cur + 1) + ' / ' + slides.length;
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = cur === slides.length - 1;
+    maybeStartChat();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(-1);
+  });
+
+  update();
+</script>
+</body>
+</html>

@@ -48,3 +48,7 @@ next-env.d.ts
 # logs
 /logs/
 *.log
+
+# pitches — indeholder fortrolige kundepræsentationer
+/pitches/
+/TECH-KNOWLEDGE.md

@@ -54,7 +54,7 @@ export async function POST(
     const promptText = context === 'post-meeting'
       ? `Du er en professionel dansk forretnings-kommunikations-ekspert.
 
-Baseret på dette pitch-indhold skal du skrive en kort, personaliseret opfølgingsbesked på DANSK efter et møde. Beskeden skal:
+Baseret på dette pitch-indhold skal du skrive en kort, personaliseret opfølgingsbesked på DANSK efter et møde hvor pitch'et blev præsenteret. Beskeden skal:
 - Starte med takne for mødet
 - Være præcis 3-4 sætninger
 - Henvise til vigtige punkter fra pitch'et som blev diskuteret
@@ -67,7 +67,7 @@ ${truncatedContent}
 Skriv KUN beskeden selv på dansk, ingen forklaringer eller præambel.`
       : `Du er en professionel dansk forretnings-kommunikations-ekspert.
 
-Baseret på dette pitch-indhold skal du skrive en kort, personaliseret invitations-besked på DANSK til en potentiel investor. Beskeden skal:
+Baseret på dette pitch-indhold skal du skrive en kort, personaliseret invitations-besked på DANSK til en potentiel investor som du vil præsentere pitch'et for. Beskeden skal:
 - Være præcis 2-3 sætninger
 - Fremhæve det vigtigste fra pitch'et
 - Være varmt og professionelt tonede

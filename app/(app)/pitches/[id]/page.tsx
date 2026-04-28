@@ -112,6 +112,7 @@ export default function PitchDetailPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteExpiry, setInviteExpiry] = useState('never');
+  const [suggestingMessage, setSuggestingMessage] = useState(false);
 
   const baseUrl =
     typeof window !== 'undefined' ? window.location.origin : '';
@@ -254,6 +255,26 @@ export default function PitchDetailPage() {
     } else {
       const data = await res.json();
       toast.error(data.error || 'Failed to resend');
+    }
+  }
+
+  async function suggestInviteMessage() {
+    setSuggestingMessage(true);
+    try {
+      const res = await fetch(`/api/pitches/${id}/suggest-invite-message`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInviteMessage(data.message);
+        toast.success('Message suggestion generated');
+      } else {
+        toast.error('Failed to generate suggestion');
+      }
+    } catch {
+      toast.error('Error generating suggestion');
+    } finally {
+      setSuggestingMessage(false);
     }
   }
 
@@ -807,7 +828,19 @@ export default function PitchDetailPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Personal Message (optional)</Label>
+              <div className="flex items-center justify-between">
+                <Label>Personal Message (optional)</Label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={suggestInviteMessage}
+                  disabled={suggestingMessage}
+                  className="h-7 text-xs gap-1"
+                >
+                  <SparklesIcon className={cn('h-3 w-3', suggestingMessage && 'animate-spin')} />
+                  {suggestingMessage ? 'Generating…' : 'Suggest'}
+                </Button>
+              </div>
               <Textarea
                 value={inviteMessage}
                 onChange={(e) => setInviteMessage(e.target.value)}

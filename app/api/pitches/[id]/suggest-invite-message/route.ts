@@ -50,7 +50,7 @@ export async function POST(
     const truncatedContent = textContent.slice(0, 4000);
 
     const message = await client.messages.create({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 300,
       messages: [
         {

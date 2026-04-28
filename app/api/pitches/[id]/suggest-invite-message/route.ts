@@ -55,9 +55,9 @@ export async function POST(
       messages: [
         {
           role: 'user',
-          content: `Du er en professionel forretnings-kommunikations-ekspert.
+          content: `Du er en professionel dansk forretnings-kommunikations-ekspert.
 
-Baseret på dette pitch-indhold skal du skrive en kort, personaliseret invitations-besked til en potentiel investor. Beskeden skal:
+Baseret på dette pitch-indhold skal du skrive en kort, personaliseret invitations-besked på DANSK til en potentiel investor. Beskeden skal:
 - Være præcis 2-3 sætninger
 - Fremhæve det vigtigste fra pitch'et
 - Være varmt og professionelt tonede
@@ -66,7 +66,7 @@ Baseret på dette pitch-indhold skal du skrive en kort, personaliseret invitatio
 Pitch-indhold:
 ${truncatedContent}
 
-Skriv KUN beskeden selv, ingen forklaringer eller præambel.`,
+Skriv KUN beskeden selv på dansk, ingen forklaringer eller præambel.`,
         },
       ],
     });

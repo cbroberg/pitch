@@ -97,6 +97,17 @@ Skriv KUN beskeden selv på dansk, ingen forklaringer eller præambel.`;
       finalMessage += '\n\nMed venlig hilsen\nChristian';
     }
 
+    // Add footer with broberg.ai branding (email-safe HTML)
+    const footer = `
+
+---
+Shared via Pitch Vault and powered by broberg.ai
+
+<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e0e0e0;font-size:11px;color:#888888;font-family:'DM Sans',-apple-system,sans-serif;font-weight:600">
+Shared via Pitch Vault and powered by <span style="color:#f0f4f8">broberg<span style="color:#F3522C;font-weight:600">.ai</span></span>
+</div>`;
+    finalMessage += footer;
+
     return NextResponse.json({ message: finalMessage });
   } catch (error) {
     console.error('[suggest-invite-message]', error);

@@ -113,6 +113,7 @@ export default function PitchDetailPage() {
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteExpiry, setInviteExpiry] = useState('never');
   const [suggestingMessage, setSuggestingMessage] = useState(false);
+  const [messageContext, setMessageContext] = useState<'pre-meeting' | 'post-meeting'>('pre-meeting');
 
   const baseUrl =
     typeof window !== 'undefined' ? window.location.origin : '';
@@ -263,6 +264,8 @@ export default function PitchDetailPage() {
     try {
       const res = await fetch(`/api/pitches/${id}/suggest-invite-message`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context: messageContext }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -826,6 +829,22 @@ export default function PitchDetailPage() {
                   <SelectItem value="30d">Efter 30 dage</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Message type</Label>
+              <div className="flex gap-2">
+                {(['pre-meeting', 'post-meeting'] as const).map((type) => (
+                  <Button
+                    key={type}
+                    size="sm"
+                    variant={messageContext === type ? 'default' : 'outline'}
+                    onClick={() => setMessageContext(type)}
+                    className="flex-1"
+                  >
+                    {type === 'pre-meeting' ? 'Før møde' : 'Efter møde'}
+                  </Button>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">

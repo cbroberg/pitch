@@ -9,12 +9,14 @@ import path from 'path';
 const client = new Anthropic();
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string } > },
 ) {
   try {
     const userId = await getUserId();
     const { id } = await params;
+    const body = await request.json().catch(() => ({}));
+    const context = (body.context as 'pre-meeting' | 'post-meeting') || 'pre-meeting';
 
     const pitch = getPitchById(id);
     if (!pitch) {
@@ -49,13 +51,21 @@ export async function POST(
     // Truncate to ~4000 chars for context
     const truncatedContent = textContent.slice(0, 4000);
 
-    const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
-      messages: [
-        {
-          role: 'user',
-          content: `Du er en professionel dansk forretnings-kommunikations-ekspert.
+    const promptText = context === 'post-meeting'
+      ? `Du er en professionel dansk forretnings-kommunikations-ekspert.
+
+Baseret på dette pitch-indhold skal du skrive en kort, personaliseret opfølgingsbesked på DANSK efter et møde. Beskeden skal:
+- Starte med takne for mødet
+- Være præcis 3-4 sætninger
+- Henvise til vigtige punkter fra pitch'et som blev diskuteret
+- Være varmt og professionelt tonede
+- SLUT med "Med venlig hilsen" på en ny linje, efterfulgt af "Christian"
+
+Pitch-indhold:
+${truncatedContent}
+
+Skriv KUN beskeden selv på dansk, ingen forklaringer eller præambel.`
+      : `Du er en professionel dansk forretnings-kommunikations-ekspert.
 
 Baseret på dette pitch-indhold skal du skrive en kort, personaliseret invitations-besked på DANSK til en potentiel investor. Beskeden skal:
 - Være præcis 2-3 sætninger
@@ -66,7 +76,15 @@ Baseret på dette pitch-indhold skal du skrive en kort, personaliseret invitatio
 Pitch-indhold:
 ${truncatedContent}
 
-Skriv KUN beskeden selv på dansk, ingen forklaringer eller præambel.`,
+Skriv KUN beskeden selv på dansk, ingen forklaringer eller præambel.`;
+
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      messages: [
+        {
+          role: 'user',
+          content: promptText,
         },
       ],
     });

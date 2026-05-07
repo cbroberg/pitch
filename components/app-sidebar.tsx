@@ -5,6 +5,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { getUser } from '@/lib/get-user';
 import Link from 'next/link';
@@ -18,10 +19,13 @@ export async function AppSidebar() {
 
   return (
     <Sidebar collapsible="offcanvas">
-      <SidebarHeader className="px-2 py-5">
-        <Link href="/dashboard">
-          <Image src="/pitch-vault-logo-dark.svg" alt="Pitch Vault" width={320} height={128} className="h-12 w-auto" unoptimized />
-        </Link>
+      <SidebarHeader className="px-2 py-4">
+        <div className="flex items-center justify-between gap-2">
+          <Link href="/dashboard" className="flex-1 min-w-0">
+            <Image src="/pitch-vault-logo-dark.svg" alt="Pitch Vault" width={320} height={128} className="h-10 w-auto" unoptimized />
+          </Link>
+          <SidebarTrigger className="shrink-0 text-muted-foreground hover:text-foreground" />
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <NavMain />

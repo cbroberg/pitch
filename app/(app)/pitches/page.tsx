@@ -11,7 +11,8 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, PlayIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PitchThumbnail } from '@/components/pitch-thumbnail';
 import { formatDistanceToNow } from 'date-fns';
@@ -81,20 +82,21 @@ export default function PitchesPage() {
     : null;
 
   return (
+    <TooltipProvider>
     <div className="[zoom:0.9]">
-      <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4">
-        <SidebarTrigger />
+      <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-3 overflow-x-hidden">
+        <SidebarTrigger className="shrink-0" />
         <h1 className="text-base font-semibold shrink-0">Pitches</h1>
 
         {/* Search */}
-        <div className="relative flex-1 max-w-sm ml-2">
+        <div className="relative flex-1 min-w-0 max-w-xs ml-1">
           <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <Input
             ref={searchRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Søg i pitches…"
-            className="h-8 pl-8 pr-16 text-sm"
+            className="h-8 pl-8 pr-14 text-sm"
           />
           {query ? (
             <button
@@ -110,7 +112,7 @@ export default function PitchesPage() {
           )}
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1 shrink-0">
           <div className="flex items-center rounded-md border p-0.5">
             <Button
               size="icon"
@@ -131,19 +133,23 @@ export default function PitchesPage() {
               <ListIcon className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={generateAllThumbnails}>
-            <ImageIcon className="mr-1 h-3.5 w-3.5" />
-            Thumbnails
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="icon" variant="outline" className="h-8 w-8" onClick={generateAllThumbnails}>
+                <ImageIcon className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Opdater thumbnails</TooltipContent>
+          </Tooltip>
           <Button asChild size="sm">
             <Link href="/pitches/new">
               <PlusIcon className="mr-1 h-4 w-4" />
-              New Pitch
+              New
             </Link>
           </Button>
         </div>
       </header>
-      <main className="flex-1 p-4 md:p-6">
+      <main className="flex-1 p-4 pr-6 md:p-6 md:pr-8">
         <div className="max-w-5xl">
           {!filtered ? (
             viewMode === 'grid' ? (
@@ -231,14 +237,15 @@ export default function PitchesPage() {
                             </Link>
                           </Button>
                           <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 shrink-0"
+                            size="sm"
+                            variant="default"
+                            className="h-7 shrink-0 gap-1 px-2"
                             asChild
                             onClick={(e) => e.stopPropagation()}
                           >
                             <a href={`/preview/${pitch.id}`} target="_blank" rel="noopener noreferrer">
-                              <ExternalLinkIcon className="h-3.5 w-3.5" />
+                              <PlayIcon className="h-3 w-3" />
+                              <span className="text-xs">Launch</span>
                             </a>
                           </Button>
                         </div>
@@ -288,26 +295,32 @@ export default function PitchesPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          asChild
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Link href={`/pitches/${pitch.id}/edit`}>
+                            <PencilIcon className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Rediger</TooltipContent>
+                    </Tooltip>
                     <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      asChild
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Link href={`/pitches/${pitch.id}/edit`}>
-                        <PencilIcon className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
+                      size="sm"
+                      variant="default"
+                      className="h-7 gap-1 px-2.5"
                       asChild
                       onClick={(e) => e.stopPropagation()}
                     >
                       <a href={`/preview/${pitch.id}`} target="_blank" rel="noopener noreferrer">
-                        <ExternalLinkIcon className="h-3.5 w-3.5" />
+                        <PlayIcon className="h-3 w-3" />
+                        <span className="text-xs">Launch</span>
                       </a>
                     </Button>
                   </div>
@@ -318,5 +331,6 @@ export default function PitchesPage() {
         </div>
       </main>
     </div>
+    </TooltipProvider>
   );
 }

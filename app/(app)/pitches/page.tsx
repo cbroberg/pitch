@@ -83,7 +83,7 @@ export default function PitchesPage() {
 
   return (
     <TooltipProvider>
-    <div className="[zoom:0.9]">
+    <div>
       <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-3 overflow-x-hidden">
         <SidebarTrigger className="shrink-0" />
         <h1 className="text-base font-semibold shrink-0">Pitches</h1>

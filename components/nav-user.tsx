@@ -30,8 +30,8 @@ export function NavUser({ user, avatarUrl }: NavUserProps) {
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
     toast.success('Signed out');
+    window.location.href = '/login';
   }
 
   return (

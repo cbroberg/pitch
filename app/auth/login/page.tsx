@@ -44,7 +44,7 @@ export default function LoginPage() {
         toast.error(data.error || 'Login failed');
         return;
       }
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } finally {
       setLoading(false);
     }
@@ -83,7 +83,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } finally {
       setPasskeyLoading(false);
     }

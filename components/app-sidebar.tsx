@@ -20,7 +20,8 @@ export async function AppSidebar() {
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="px-2 py-5">
         <Link href="/dashboard">
-          <Image src="/pitch-vault-logo-dark.svg" alt="Pitch Vault" width={320} height={128} className="h-12 w-auto" unoptimized />
+          <Image src="/pitch-vault-logo-dark.svg" alt="Pitch Vault" width={320} height={128} className="h-12 w-auto hidden dark:block" unoptimized />
+          <Image src="/pitch-vault-logo-light.svg" alt="Pitch Vault" width={320} height={128} className="h-12 w-auto block dark:hidden" unoptimized />
         </Link>
       </SidebarHeader>
       <SidebarContent>

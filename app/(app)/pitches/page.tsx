@@ -192,12 +192,16 @@ export default function PitchesPage() {
             </TooltipTrigger>
             <TooltipContent>Opdater thumbnails</TooltipContent>
           </Tooltip>
-          <Button asChild size="sm">
-            <Link href="/pitches/new">
-              <PlusIcon className="mr-1 h-4 w-4" />
-              New
-            </Link>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button asChild size="icon" className="h-8 w-8">
+                <Link href="/pitches/new">
+                  <PlusIcon className="h-4 w-4" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Ny pitch</TooltipContent>
+          </Tooltip>
         </div>
       </header>
       <main className="flex-1 p-4 pr-6 md:p-6 md:pr-8">
@@ -316,7 +320,7 @@ export default function PitchesPage() {
                   <div onClick={(e) => toggleSelect(pitch.id, e)} className="shrink-0">
                     <Checkbox
                       checked={selectedIds.has(pitch.id)}
-                      className={selectedIds.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 hover:opacity-100'}
+                      className="opacity-25 hover:opacity-100 data-[state=checked]:opacity-100 transition-opacity"
                     />
                   </div>
                   <PitchThumbnail pitchId={pitch.id} fileType={pitch.fileType} className="w-16 h-10 object-cover object-top rounded shrink-0" cacheBust={thumbKey} />

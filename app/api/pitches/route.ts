@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserId } from '@/lib/get-user-id';
+import { getUser } from '@/lib/get-user';
 import { createPitch, getAllPitches } from '@/lib/db/queries/pitches';
 import { savePitchFile, detectFileType, listPitchFiles } from '@/lib/upload';
 import { generateUniqueSlug } from '@/lib/slug';
+import { getUserFolderIds } from '@/lib/db/queries/user-folder-access';
 
 export async function GET() {
   try {
-    await getUserId();
+    const user = await getUser();
     const all = getAllPitches();
-    return NextResponse.json(all);
+
+    if (user.role === 'super_admin') {
+      return NextResponse.json(all);
+    }
+
+    const allowedFolderIds = new Set(getUserFolderIds(user.id));
+    const filtered = all.filter(
+      (p) => p.folderId !== null && allowedFolderIds.has(p.folderId),
+    );
+    return NextResponse.json(filtered);
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -16,7 +26,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await getUserId();
+    await getUser();
 
     const formData = await request.formData();
     const title = formData.get('title') as string;

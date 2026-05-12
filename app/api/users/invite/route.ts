@@ -13,6 +13,8 @@ import { sendUserInviteEmail } from '@/lib/email/resend';
 const schema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
+  role: z.enum(['super_admin', 'editor', 'viewer']).default('viewer'),
+  folderIds: z.array(z.string()).default([]),
 });
 
 const INVITE_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
@@ -49,6 +51,8 @@ export async function POST(request: NextRequest) {
       token,
       email: data.email,
       name: data.name,
+      role: data.role,
+      folderIds: JSON.stringify(data.folderIds),
       expiresAt,
       invitedBy: userId,
     });

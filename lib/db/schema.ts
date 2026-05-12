@@ -91,6 +91,7 @@ export const userInvitations = sqliteTable('user_invitations', {
   email: text('email').notNull(),
   name: text('name').notNull(),
   role: text('role').notNull().default('super_admin'),
+  folderIds: text('folder_ids').default('[]'), // JSON array of folder IDs
   invitedBy: text('invited_by').references(() => users.id, {
     onDelete: 'set null',
   }),
@@ -106,6 +107,13 @@ export const templates = sqliteTable('templates', {
   sourcePitchId: text('source_pitch_id').references(() => pitches.id, { onDelete: 'set null' }),
   createdAt: integer('created_at').notNull().$defaultFn(now),
   updatedAt: integer('updated_at').notNull().$defaultFn(now),
+});
+
+export const userFolderAccess = sqliteTable('user_folder_access', {
+  id: text('id').primaryKey().$defaultFn(() => nanoid()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  folderId: text('folder_id').notNull().references(() => folders.id, { onDelete: 'cascade' }),
+  createdAt: integer('created_at').notNull().$defaultFn(now),
 });
 
 export const webauthnCredentials = sqliteTable('webauthn_credentials', {
@@ -135,5 +143,7 @@ export type Template = typeof templates.$inferSelect;
 export type NewTemplate = typeof templates.$inferInsert;
 export type UserInvitation = typeof userInvitations.$inferSelect;
 export type NewUserInvitation = typeof userInvitations.$inferInsert;
+export type UserFolderAccess = typeof userFolderAccess.$inferSelect;
+export type NewUserFolderAccess = typeof userFolderAccess.$inferInsert;
 export type WebauthnCredential = typeof webauthnCredentials.$inferSelect;
 export type NewWebauthnCredential = typeof webauthnCredentials.$inferInsert;

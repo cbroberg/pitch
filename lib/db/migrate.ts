@@ -142,6 +142,25 @@ export function runMigrations() {
     db.exec(`ALTER TABLE access_tokens ADD COLUMN pin_attempts INTEGER NOT NULL DEFAULT 0`);
   }
 
+  // user_folder_access table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_folder_access (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      folder_id TEXT NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL,
+      UNIQUE(user_id, folder_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_ufa_user_id ON user_folder_access(user_id);
+  `);
+
+  // folder_ids column on user_invitations
+  const inviteCols = db.prepare(`PRAGMA table_info(user_invitations)`).all() as { name: string }[];
+  const inviteColNames = inviteCols.map((c) => c.name);
+  if (!inviteColNames.includes('folder_ids')) {
+    db.exec(`ALTER TABLE user_invitations ADD COLUMN folder_ids TEXT NOT NULL DEFAULT '[]'`);
+  }
+
   db.close();
   console.log('[pitch-vault] Migrations completed');
 }

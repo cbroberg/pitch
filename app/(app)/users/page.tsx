@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -16,8 +17,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
-import { UserPlusIcon, MailIcon, CheckIcon, ClockIcon } from 'lucide-react';
+import { UserPlusIcon, ClockIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface UserRow {
@@ -32,26 +40,66 @@ interface InvitationRow {
   id: string;
   email: string;
   name: string;
+  role: string;
   expiresAt: number;
   acceptedAt: number | null;
   createdAt: number;
 }
 
+interface FolderItem {
+  id: string;
+  name: string;
+  parentId: string | null;
+  children?: FolderItem[];
+}
+
+type Role = 'super_admin' | 'editor' | 'viewer';
+
+const ROLE_LABELS: Record<Role, string> = {
+  super_admin: 'Super Admin',
+  editor: 'Editor',
+  viewer: 'Viewer',
+};
+
+function flattenFolders(folders: FolderItem[], depth = 0): { id: string; name: string; depth: number }[] {
+  const result: { id: string; name: string; depth: number }[] = [];
+  for (const f of folders) {
+    result.push({ id: f.id, name: f.name, depth });
+    if (f.children && f.children.length > 0) {
+      result.push(...flattenFolders(f.children, depth + 1));
+    }
+  }
+  return result;
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [invitations, setInvitations] = useState<InvitationRow[]>([]);
+  const [folders, setFolders] = useState<{ id: string; name: string; depth: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '' });
+  const [form, setForm] = useState<{
+    name: string;
+    email: string;
+    role: Role;
+    folderIds: string[];
+  }>({ name: '', email: '', role: 'viewer', folderIds: [] });
   const [submitting, setSubmitting] = useState(false);
 
   async function load() {
     try {
-      const res = await fetch('/api/users');
-      if (res.ok) {
-        const data = await res.json();
+      const [usersRes, foldersRes] = await Promise.all([
+        fetch('/api/users'),
+        fetch('/api/folders'),
+      ]);
+      if (usersRes.ok) {
+        const data = await usersRes.json();
         setUsers(data.users);
         setInvitations(data.invitations);
+      }
+      if (foldersRes.ok) {
+        const tree: FolderItem[] = await foldersRes.json();
+        setFolders(flattenFolders(tree));
       }
     } finally {
       setLoading(false);
@@ -62,6 +110,15 @@ export default function UsersPage() {
     load();
   }, []);
 
+  function toggleFolder(folderId: string) {
+    setForm((f) => ({
+      ...f,
+      folderIds: f.folderIds.includes(folderId)
+        ? f.folderIds.filter((id) => id !== folderId)
+        : [...f.folderIds, folderId],
+    }));
+  }
+
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -69,7 +126,12 @@ export default function UsersPage() {
       const res = await fetch('/api/users/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          role: form.role,
+          folderIds: form.role === 'super_admin' ? [] : form.folderIds,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -77,7 +139,7 @@ export default function UsersPage() {
         return;
       }
       toast.success(`Invitation sendt til ${form.email}`);
-      setForm({ name: '', email: '' });
+      setForm({ name: '', email: '', role: 'viewer', folderIds: [] });
       setDialogOpen(false);
       load();
     } finally {
@@ -92,6 +154,8 @@ export default function UsersPage() {
   const expiredInvites = invitations.filter(
     (i) => !i.acceptedAt && i.expiresAt <= now,
   );
+
+  const showFolderPicker = form.role === 'viewer' || form.role === 'editor';
 
   return (
     <>
@@ -138,6 +202,60 @@ export default function UsersPage() {
                     required
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Rolle</Label>
+                  <Select
+                    value={form.role}
+                    onValueChange={(val) =>
+                      setForm((f) => ({
+                        ...f,
+                        role: val as Role,
+                        folderIds: val === 'super_admin' ? [] : f.folderIds,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="viewer">Viewer</SelectItem>
+                      <SelectItem value="editor">Editor</SelectItem>
+                      <SelectItem value="super_admin">Super Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {showFolderPicker && (
+                  <div className="space-y-2">
+                    <Label>Mapper med adgang</Label>
+                    {folders.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Ingen mapper oprettet endnu.
+                      </p>
+                    ) : (
+                      <div className="rounded-md border p-3 space-y-2 max-h-48 overflow-y-auto">
+                        {folders.map((folder) => (
+                          <div
+                            key={folder.id}
+                            className="flex items-center gap-2"
+                            style={{ paddingLeft: `${folder.depth * 16}px` }}
+                          >
+                            <Checkbox
+                              id={`folder-${folder.id}`}
+                              checked={form.folderIds.includes(folder.id)}
+                              onCheckedChange={() => toggleFolder(folder.id)}
+                            />
+                            <label
+                              htmlFor={`folder-${folder.id}`}
+                              className="text-sm cursor-pointer"
+                            >
+                              {folder.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <DialogFooter>
                   <Button
                     type="button"
@@ -174,7 +292,9 @@ export default function UsersPage() {
                         <p className="font-medium">{u.name}</p>
                         <p className="text-sm text-muted-foreground">{u.email}</p>
                       </div>
-                      <Badge variant="secondary">{u.role}</Badge>
+                      <Badge variant="secondary">
+                        {ROLE_LABELS[u.role as Role] ?? u.role}
+                      </Badge>
                     </CardContent>
                   </Card>
                 ))}
@@ -195,9 +315,17 @@ export default function UsersPage() {
                         <p className="font-medium">{i.name}</p>
                         <p className="text-sm text-muted-foreground">{i.email}</p>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <ClockIcon className="h-3 w-3" />
-                        Udløber {formatDistanceToNow(new Date(i.expiresAt * 1000), { addSuffix: true })}
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">
+                          {ROLE_LABELS[i.role as Role] ?? i.role}
+                        </Badge>
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <ClockIcon className="h-3 w-3" />
+                          Udløber{' '}
+                          {formatDistanceToNow(new Date(i.expiresAt * 1000), {
+                            addSuffix: true,
+                          })}
+                        </span>
                       </div>
                     </CardContent>
                   </Card>

@@ -8,6 +8,7 @@ import {
 import { createUser, getUserByEmail } from '@/lib/db/queries/users';
 import { hashPassword } from '@/lib/auth/password';
 import { createSession, setSessionCookie } from '@/lib/auth/session';
+import { setUserFolderAccess } from '@/lib/db/queries/user-folder-access';
 
 const schema = z.object({
   token: z.string().min(1),
@@ -61,6 +62,11 @@ export async function POST(request: NextRequest) {
     });
 
     markInvitationAccepted(invitation.id);
+
+    const folderIds: string[] = JSON.parse(invitation.folderIds || '[]');
+    if (folderIds.length > 0) {
+      setUserFolderAccess(user.id, folderIds);
+    }
 
     const sessionId = await createSession(user.id);
     await setSessionCookie(sessionId);

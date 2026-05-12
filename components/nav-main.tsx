@@ -26,7 +26,7 @@ const allNavItems = [
   { title: 'Access Tokens', url: '/access', icon: KeyIcon, roles: ['super_admin'] },
   { title: 'Users', url: '/users', icon: UsersIcon, roles: ['super_admin'] },
   { title: 'Settings', url: '/settings', icon: SettingsIcon, roles: ['super_admin'] },
-  { title: 'Help', url: '/help', icon: HelpCircleIcon, roles: ['super_admin', 'editor', 'viewer'] },
+  { title: 'Help', url: '/help', icon: HelpCircleIcon, roles: ['super_admin', 'editor'] },
 ];
 
 export function NavMain({ role }: { role: string }) {

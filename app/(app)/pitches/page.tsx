@@ -203,10 +203,8 @@ export default function PitchesPage() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button asChild size="icon" className="h-8 w-8">
-                <Link href="/pitches/new">
-                  <PlusIcon className="h-4 w-4" />
-                </Link>
+              <Button size="icon" className="h-8 w-8" onClick={() => router.push('/pitches/new')}>
+                <PlusIcon className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Ny pitch</TooltipContent>

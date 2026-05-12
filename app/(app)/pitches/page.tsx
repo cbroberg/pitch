@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, PlayIcon } from 'lucide-react';
+import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PitchThumbnail } from '@/components/pitch-thumbnail';
 import { formatDistanceToNow } from 'date-fns';
@@ -237,15 +237,14 @@ export default function PitchesPage() {
                             </Link>
                           </Button>
                           <Button
-                            size="sm"
-                            variant="default"
-                            className="h-7 shrink-0 gap-1 px-2"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 shrink-0"
                             asChild
                             onClick={(e) => e.stopPropagation()}
                           >
                             <a href={`/preview/${pitch.id}`} target="_blank" rel="noopener noreferrer">
-                              <PlayIcon className="h-3 w-3" />
-                              <span className="text-xs">Launch</span>
+                              <ExternalLinkIcon className="h-3.5 w-3.5" />
                             </a>
                           </Button>
                         </div>
@@ -295,32 +294,26 @@ export default function PitchesPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7"
-                          asChild
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Link href={`/pitches/${pitch.id}/edit`}>
-                            <PencilIcon className="h-3.5 w-3.5" />
-                          </Link>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Rediger</TooltipContent>
-                    </Tooltip>
                     <Button
-                      size="sm"
-                      variant="default"
-                      className="h-7 gap-1 px-2.5"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      asChild
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Link href={`/pitches/${pitch.id}/edit`}>
+                        <PencilIcon className="h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
                       asChild
                       onClick={(e) => e.stopPropagation()}
                     >
                       <a href={`/preview/${pitch.id}`} target="_blank" rel="noopener noreferrer">
-                        <PlayIcon className="h-3 w-3" />
-                        <span className="text-xs">Launch</span>
+                        <ExternalLinkIcon className="h-3.5 w-3.5" />
                       </a>
                     </Button>
                   </div>

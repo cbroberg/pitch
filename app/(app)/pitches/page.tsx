@@ -37,6 +37,7 @@ export default function PitchesPage() {
   const [thumbKey, setThumbKey] = useState(0);
   const [query, setQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  const [userRole, setUserRole] = useState<string>('super_admin');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBatchInvite, setShowBatchInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -99,6 +100,10 @@ export default function PitchesPage() {
   useEffect(() => {
     const saved = localStorage.getItem('pitches-view-mode') as ViewMode | null;
     if (saved === 'grid' || saved === 'list') setViewMode(saved);
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/settings').then(r => r.ok ? r.json() : null).then(d => { if (d?.role) setUserRole(d.role); });
   }, []);
 
   useEffect(() => {
@@ -193,22 +198,26 @@ export default function PitchesPage() {
               <ListIcon className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button size="icon" variant="outline" className="h-8 w-8" onClick={generateAllThumbnails}>
-                <ImageIcon className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Opdater thumbnails</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button size="icon" className="h-8 w-8" onClick={() => router.push('/pitches/new')}>
-                <PlusIcon className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Ny pitch</TooltipContent>
-          </Tooltip>
+          {userRole !== 'viewer' && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="icon" variant="outline" className="h-8 w-8" onClick={generateAllThumbnails}>
+                  <ImageIcon className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Opdater thumbnails</TooltipContent>
+            </Tooltip>
+          )}
+          {userRole !== 'viewer' && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="icon" className="h-8 w-8" onClick={() => router.push('/pitches/new')}>
+                  <PlusIcon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Ny pitch</TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </header>
       <main className="flex-1 p-4 pr-6 md:p-6 md:pr-8">

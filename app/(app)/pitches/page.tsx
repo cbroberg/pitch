@@ -196,8 +196,8 @@ export default function PitchesPage() {
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="font-semibold leading-tight">{pitch.title}</h3>
                         <Badge
-                          variant={pitch.isPublished ? 'default' : 'secondary'}
-                          className="shrink-0"
+                          variant="outline"
+                          className={`shrink-0 ${pitch.isPublished ? 'border-green-600 bg-green-600/10 text-green-500' : 'border-red-500 bg-red-500/10 text-red-400'}`}
                         >
                           {pitch.isPublished ? 'Live' : 'Draft'}
                         </Badge>

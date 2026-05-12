@@ -81,6 +81,8 @@ export default function PitchDetailPage() {
   const [isPublished, setIsPublished] = useState(false);
   const [dirty, setDirty] = useState(false);
 
+  const [userRole, setUserRole] = useState<string>('super_admin');
+
   const [thumbKey, setThumbKey] = useState(0);
   const [thumbRefreshing, setThumbRefreshing] = useState(false);
 
@@ -161,6 +163,10 @@ export default function PitchDetailPage() {
     fetch('/api/folders')
       .then((r) => r.ok ? r.json() : [])
       .then(setFolders)
+      .catch(() => {});
+    fetch('/api/settings')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.role) setUserRole(data.role); })
       .catch(() => {});
   }, [id]);
 
@@ -390,46 +396,50 @@ export default function PitchDetailPage() {
               Preview
             </a>
           </Button>
-          {pitch.fileType === 'html' && (
+          {userRole !== 'viewer' && (
             <>
+              {pitch.fileType === 'html' && (
+                <>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/pitches/${id}/visual`}>
+                      <MousePointer2Icon className="mr-1 h-3.5 w-3.5" />
+                      Visual Edit
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/pitches/${id}/ai`}>
+                      <SparklesIcon className="mr-1 h-3.5 w-3.5" />
+                      Edit med AI
+                    </Link>
+                  </Button>
+                </>
+              )}
               <Button asChild variant="outline" size="sm">
-                <Link href={`/pitches/${id}/visual`}>
-                  <MousePointer2Icon className="mr-1 h-3.5 w-3.5" />
-                  Visual Edit
+                <Link href={`/pitches/${id}/stats`}>
+                  <BarChart3Icon className="mr-1 h-3.5 w-3.5" />
+                  Stats
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/pitches/${id}/ai`}>
-                  <SparklesIcon className="mr-1 h-3.5 w-3.5" />
-                  Edit med AI
-                </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setTemplateName(pitch.title);
+                  setTemplateDialogOpen(true);
+                }}
+              >
+                <LayoutTemplateIcon className="mr-1 h-3.5 w-3.5" />
+                Save as Template
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <TrashIcon className="h-3.5 w-3.5" />
               </Button>
             </>
           )}
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/pitches/${id}/stats`}>
-              <BarChart3Icon className="mr-1 h-3.5 w-3.5" />
-              Stats
-            </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setTemplateName(pitch.title);
-              setTemplateDialogOpen(true);
-            }}
-          >
-            <LayoutTemplateIcon className="mr-1 h-3.5 w-3.5" />
-            Save as Template
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <TrashIcon className="h-3.5 w-3.5" />
-          </Button>
         </div>
       </header>
 
@@ -439,7 +449,9 @@ export default function PitchDetailPage() {
             <TabsList>
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>
-              <TabsTrigger value="access">Access</TabsTrigger>
+              {userRole !== 'viewer' && (
+                <TabsTrigger value="access">Access</TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="details" className="space-y-4 pt-4">
@@ -634,7 +646,7 @@ export default function PitchDetailPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="access" className="space-y-4 pt-4">
+            {userRole !== 'viewer' && <TabsContent value="access" className="space-y-4 pt-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">Access Tokens</h3>
                 <div className="flex gap-2">
@@ -744,7 +756,7 @@ export default function PitchDetailPage() {
                   ))}
                 </div>
               )}
-            </TabsContent>
+            </TabsContent>}
           </Tabs>
         </div>
       </main>

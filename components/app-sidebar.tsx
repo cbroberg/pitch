@@ -25,7 +25,7 @@ export async function AppSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain />
+        <NavMain role={user.role} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={{ name: user.name, email: user.email }} avatarUrl={avatarUrl} />

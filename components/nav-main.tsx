@@ -18,19 +18,20 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 
-const navItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboardIcon },
-  { title: 'Pitches', url: '/pitches', icon: PresentationIcon },
-  { title: 'Templates', url: '/templates', icon: LayoutTemplateIcon },
-  { title: 'Folders', url: '/folders', icon: FolderIcon },
-  { title: 'Access Tokens', url: '/access', icon: KeyIcon },
-  { title: 'Users', url: '/users', icon: UsersIcon },
-  { title: 'Settings', url: '/settings', icon: SettingsIcon },
-  { title: 'Help', url: '/help', icon: HelpCircleIcon },
+const allNavItems = [
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboardIcon, roles: ['super_admin', 'editor', 'viewer'] },
+  { title: 'Pitches', url: '/pitches', icon: PresentationIcon, roles: ['super_admin', 'editor', 'viewer'] },
+  { title: 'Templates', url: '/templates', icon: LayoutTemplateIcon, roles: ['super_admin', 'editor'] },
+  { title: 'Folders', url: '/folders', icon: FolderIcon, roles: ['super_admin', 'editor'] },
+  { title: 'Access Tokens', url: '/access', icon: KeyIcon, roles: ['super_admin'] },
+  { title: 'Users', url: '/users', icon: UsersIcon, roles: ['super_admin'] },
+  { title: 'Settings', url: '/settings', icon: SettingsIcon, roles: ['super_admin'] },
+  { title: 'Help', url: '/help', icon: HelpCircleIcon, roles: ['super_admin', 'editor', 'viewer'] },
 ];
 
-export function NavMain() {
+export function NavMain({ role }: { role: string }) {
   const pathname = usePathname();
+  const navItems = allNavItems.filter((item) => item.roles.includes(role));
 
   return (
     <SidebarMenu>

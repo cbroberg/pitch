@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { buildInviteEmail } from './templates/invite';
 import { buildUserInviteEmail } from './templates/invite-user';
+import { buildBatchInviteEmail } from './templates/invite-batch';
 
 function getResend(): Resend {
   const apiKey = process.env.RESEND_API_KEY;
@@ -59,4 +60,21 @@ export async function sendUserInviteEmail(params: {
   if (error) {
     throw new Error(`Email send failed: ${error.message}`);
   }
+}
+
+export async function sendBatchInviteEmail(params: {
+  to: string;
+  pitches: { title: string; viewUrl: string; pin?: string }[];
+  message?: string;
+}): Promise<void> {
+  const resend = getResend();
+  const from = process.env.EMAIL_FROM || 'Pitch Vault <noreply@pitchvault.app>';
+
+  const { html, text } = buildBatchInviteEmail(params);
+  const subject = params.pitches.length === 1
+    ? `Du er inviteret til at se: ${params.pitches[0].title}`
+    : `Du er inviteret til at se ${params.pitches.length} præsentationer`;
+
+  const { error } = await resend.emails.send({ from, to: params.to, subject, html, text });
+  if (error) throw new Error(`Email send failed: ${error.message}`);
 }

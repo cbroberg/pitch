@@ -2,17 +2,27 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Card,
   CardContent,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon } from 'lucide-react';
+import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, MailIcon, SendIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PitchThumbnail } from '@/components/pitch-thumbnail';
 import { formatDistanceToNow } from 'date-fns';
@@ -21,11 +31,52 @@ import type { Pitch } from '@/lib/db/schema';
 type ViewMode = 'grid' | 'list';
 
 export default function PitchesPage() {
+  const router = useRouter();
   const [pitches, setPitches] = useState<Pitch[] | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [thumbKey, setThumbKey] = useState(0);
   const [query, setQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBatchInvite, setShowBatchInvite] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [sendingInvite, setSendingInvite] = useState(false);
+
+  function toggleSelect(id: string, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function clearSelection() { setSelectedIds(new Set()); }
+
+  async function sendBatchInvite() {
+    if (!inviteEmail || selectedIds.size === 0) return;
+    setSendingInvite(true);
+    try {
+      const res = await fetch('/api/invite/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pitchIds: Array.from(selectedIds), email: inviteEmail, message: inviteMessage || undefined }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      const { count } = await res.json();
+      toast.success(`Invitation sendt til ${inviteEmail} med ${count} præsentation${count === 1 ? '' : 'er'}`);
+      setShowBatchInvite(false);
+      setInviteEmail('');
+      setInviteMessage('');
+      clearSelection();
+    } catch {
+      toast.error('Kunne ikke sende invitation');
+    } finally {
+      setSendingInvite(false);
+    }
+  }
 
   async function generateAllThumbnails() {
     const res = await fetch('/api/pitches/thumbnails-batch', { method: 'POST' });
@@ -84,12 +135,12 @@ export default function PitchesPage() {
   return (
     <TooltipProvider>
     <div>
-      <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4 overflow-x-hidden">
+      <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4">
         <SidebarTrigger className="shrink-0" />
         <h1 className="text-base font-semibold shrink-0">Pitches</h1>
 
         {/* Search */}
-        <div className="relative flex-1 min-w-0 max-w-xs ml-1">
+        <div className="relative flex-1 min-w-0 max-w-[220px] ml-1">
           <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <Input
             ref={searchRef}
@@ -257,11 +308,17 @@ export default function PitchesPage() {
           ) : (
             <div className="flex flex-col divide-y rounded-lg border">
               {filtered.map((pitch) => (
-                <Link
+                <div
                   key={pitch.id}
-                  href={`/pitches/${pitch.id}`}
-                  className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/50"
+                  className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50 cursor-pointer ${selectedIds.has(pitch.id) ? 'bg-muted/30' : ''}`}
+                  onClick={() => router.push(`/pitches/${pitch.id}`)}
                 >
+                  <div onClick={(e) => toggleSelect(pitch.id, e)} className="shrink-0">
+                    <Checkbox
+                      checked={selectedIds.has(pitch.id)}
+                      className={selectedIds.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 hover:opacity-100'}
+                    />
+                  </div>
                   <PitchThumbnail pitchId={pitch.id} fileType={pitch.fileType} className="w-16 h-10 object-cover object-top rounded shrink-0" cacheBust={thumbKey} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -298,31 +355,91 @@ export default function PitchesPage() {
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7"
-                      asChild
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); router.push(`/pitches/${pitch.id}/edit`); }}
                     >
-                      <Link href={`/pitches/${pitch.id}/edit`}>
-                        <PencilIcon className="h-3.5 w-3.5" />
-                      </Link>
+                      <PencilIcon className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7"
-                      asChild
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); window.open(`/preview/${pitch.id}`, '_blank'); }}
                     >
-                      <a href={`/preview/${pitch.id}`} target="_blank" rel="noopener noreferrer">
-                        <ExternalLinkIcon className="h-3.5 w-3.5" />
-                      </a>
+                      <ExternalLinkIcon className="h-3.5 w-3.5" />
                     </Button>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
         </div>
       </main>
+
+      {/* Selection action bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-full border bg-background/95 backdrop-blur px-5 py-2.5 shadow-lg">
+          <span className="text-sm font-medium text-muted-foreground">{selectedIds.size} valgt</span>
+          <Button size="sm" className="h-8 gap-1.5" onClick={() => setShowBatchInvite(true)}>
+            <MailIcon className="h-3.5 w-3.5" />
+            Send invitation
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8" onClick={clearSelection}>
+            <XIcon className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+
+      {/* Batch invite dialog */}
+      <Dialog open={showBatchInvite} onOpenChange={setShowBatchInvite}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MailIcon className="h-4 w-4" />
+              Send invitation
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label>Modtager e-mail</Label>
+              <Input
+                type="email"
+                placeholder="navn@firma.dk"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Besked <span className="text-muted-foreground font-normal">(valgfrit)</span></Label>
+              <Textarea
+                placeholder="Skriv en personlig besked…"
+                rows={4}
+                value={inviteMessage}
+                onChange={(e) => setInviteMessage(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground text-xs">Valgte præsentationer ({selectedIds.size})</Label>
+              <div className="rounded-md border divide-y max-h-40 overflow-y-auto">
+                {pitches?.filter(p => selectedIds.has(p.id)).map(p => (
+                  <div key={p.id} className="px-3 py-2 text-sm flex items-center gap-2">
+                    <PresentationIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{p.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Button
+              className="w-full gap-2"
+              disabled={!inviteEmail || sendingInvite}
+              onClick={sendBatchInvite}
+            >
+              <SendIcon className="h-3.5 w-3.5" />
+              {sendingInvite ? 'Sender…' : `Send til ${selectedIds.size} præsentation${selectedIds.size === 1 ? '' : 'er'}`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
     </TooltipProvider>
   );

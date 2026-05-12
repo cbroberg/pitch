@@ -64,6 +64,7 @@ export async function sendUserInviteEmail(params: {
 
 export async function sendBatchInviteEmail(params: {
   to: string;
+  cc?: string[];
   pitches: { title: string; viewUrl: string; pin?: string }[];
   message?: string;
 }): Promise<void> {
@@ -75,6 +76,13 @@ export async function sendBatchInviteEmail(params: {
     ? `Du er inviteret til at se: ${params.pitches[0].title}`
     : `Du er inviteret til at se ${params.pitches.length} præsentationer`;
 
-  const { error } = await resend.emails.send({ from, to: params.to, subject, html, text });
+  const { error } = await resend.emails.send({
+    from,
+    to: params.to,
+    ...(params.cc && params.cc.length > 0 ? { cc: params.cc } : {}),
+    subject,
+    html,
+    text,
+  });
   if (error) throw new Error(`Email send failed: ${error.message}`);
 }

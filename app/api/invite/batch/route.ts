@@ -6,9 +6,16 @@ import { getPitchById } from '@/lib/db/queries/pitches';
 import { generateToken, generatePIN } from '@/lib/tokens';
 import { sendBatchInviteEmail } from '@/lib/email/resend';
 
+const emailList = z.union([
+  z.string().email(),
+  z.array(z.string().email()).min(1).max(20),
+]);
+
 const schema = z.object({
   pitchIds: z.array(z.string()).min(1).max(20),
-  email: z.string().email(),
+  email: z.string().optional(),
+  emails: z.array(z.string()).optional(),
+  cc: z.union([z.string(), z.array(z.string())]).optional(),
   message: z.string().optional(),
 });
 
@@ -17,6 +24,14 @@ export async function POST(request: NextRequest) {
     await getUserId();
     const body = await request.json();
     const data = schema.parse(body);
+
+    const toEmails = data.emails ?? (data.email ? [data.email] : []);
+    if (toEmails.length === 0) {
+      return NextResponse.json({ error: 'At least one email required' }, { status: 400 });
+    }
+    const ccEmails = data.cc
+      ? (Array.isArray(data.cc) ? data.cc : [data.cc])
+      : undefined;
 
     const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
     const pitchEntries: { title: string; viewUrl: string; pin: string }[] = [];
@@ -47,11 +62,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No valid pitches found' }, { status: 400 });
     }
 
-    await sendBatchInviteEmail({
-      to: data.email,
-      pitches: pitchEntries,
-      message: data.message,
-    });
+    for (const toEmail of toEmails) {
+      await sendBatchInviteEmail({
+        to: toEmail,
+        cc: ccEmails,
+        pitches: pitchEntries,
+        message: data.message,
+      });
+    }
 
     return NextResponse.json({ success: true, count: pitchEntries.length });
   } catch (error) {

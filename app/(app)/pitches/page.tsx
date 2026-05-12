@@ -40,6 +40,7 @@ export default function PitchesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBatchInvite, setShowBatchInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteCc, setInviteCc] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
   const [sendingInvite, setSendingInvite] = useState(false);
 
@@ -58,17 +59,25 @@ export default function PitchesPage() {
   async function sendBatchInvite() {
     if (!inviteEmail || selectedIds.size === 0) return;
     setSendingInvite(true);
+    const toEmails = inviteEmail.split(',').map(e => e.trim()).filter(Boolean);
+    const ccEmails = inviteCc.split(',').map(e => e.trim()).filter(Boolean);
     try {
       const res = await fetch('/api/invite/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pitchIds: Array.from(selectedIds), email: inviteEmail, message: inviteMessage || undefined }),
+        body: JSON.stringify({
+          pitchIds: Array.from(selectedIds),
+          emails: toEmails,
+          cc: ccEmails.length > 0 ? ccEmails : undefined,
+          message: inviteMessage || undefined,
+        }),
       });
       if (!res.ok) throw new Error('Failed');
       const { count } = await res.json();
-      toast.success(`Invitation sendt til ${inviteEmail} med ${count} præsentation${count === 1 ? '' : 'er'}`);
+      toast.success(`Invitation sendt til ${toEmails.join(', ')} med ${count} præsentation${count === 1 ? '' : 'er'}`);
       setShowBatchInvite(false);
       setInviteEmail('');
+      setInviteCc('');
       setInviteMessage('');
       clearSelection();
     } catch {
@@ -404,12 +413,19 @@ export default function PitchesPage() {
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <Label>Modtager e-mail</Label>
+              <Label>Til <span className="text-muted-foreground font-normal text-xs">(kommaseparer flere)</span></Label>
               <Input
-                type="email"
-                placeholder="navn@firma.dk"
+                placeholder="navn@firma.dk, anden@firma.dk"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>CC <span className="text-muted-foreground font-normal text-xs">(valgfrit)</span></Label>
+              <Input
+                placeholder="cc@firma.dk"
+                value={inviteCc}
+                onChange={(e) => setInviteCc(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">

@@ -50,7 +50,12 @@ export async function POST(request: NextRequest) {
     const updated = updatePitch(pitch.id, {
       fileType,
       entryFile,
-      ...(existing ? { title, description: description || null } : {}),
+      ...(existing ? {
+        title,
+        description: description || null,
+        ...(folderId !== null ? { folderId } : {}),
+        isPublished,
+      } : {}),
     });
 
     const baseUrl = process.env.BASE_URL || 'http://localhost:3000';

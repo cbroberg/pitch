@@ -11,6 +11,8 @@ const schema = z.object({
   email: z.string().email(),
   message: z.string().optional(),
   expiresAt: z.number().nullable().optional(),
+  protectContent: z.boolean().optional(),
+  watermark: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -33,6 +35,8 @@ export async function POST(request: NextRequest) {
       label: `Invite: ${data.email}`,
       expiresAt: data.expiresAt ?? null,
       pin,
+      protectContent: data.protectContent ?? false,
+      watermark: data.watermark ?? false,
     });
 
     const baseUrl = process.env.BASE_URL || 'http://localhost:3000';

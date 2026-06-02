@@ -17,6 +17,8 @@ const schema = z.object({
   emails: z.array(z.string()).optional(),
   cc: z.union([z.string(), z.array(z.string())]).optional(),
   message: z.string().optional(),
+  protectContent: z.boolean().optional(),
+  watermark: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -34,44 +36,47 @@ export async function POST(request: NextRequest) {
       : undefined;
 
     const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-    const pitchEntries: { title: string; viewUrl: string; pin: string }[] = [];
+    const validPitches = data.pitchIds
+      .map((id) => getPitchById(id))
+      .filter((p): p is NonNullable<typeof p> => p !== null && p !== undefined);
 
-    for (const pitchId of data.pitchIds) {
-      const pitch = getPitchById(pitchId);
-      if (!pitch) continue;
-
-      const pin = generatePIN();
-      const token = createToken({
-        pitchId,
-        token: generateToken(),
-        type: 'personal',
-        email: data.email,
-        label: `Batch invite: ${data.email}`,
-        expiresAt: null,
-        pin,
-      });
-
-      pitchEntries.push({
-        title: pitch.title,
-        viewUrl: `${baseUrl}/view/${token.token}`,
-        pin,
-      });
-    }
-
-    if (pitchEntries.length === 0) {
+    if (validPitches.length === 0) {
       return NextResponse.json({ error: 'No valid pitches found' }, { status: 400 });
     }
 
-    for (const toEmail of toEmails) {
+    // Per-recipient tokens so the watermark identifies each recipient correctly.
+    for (let i = 0; i < toEmails.length; i++) {
+      const toEmail = toEmails[i];
+      const pitchEntries = validPitches.map((pitch) => {
+        const pin = generatePIN();
+        const token = createToken({
+          pitchId: pitch.id,
+          token: generateToken(),
+          type: 'personal',
+          email: toEmail,
+          label: `Batch invite: ${toEmail}`,
+          expiresAt: null,
+          pin,
+          protectContent: data.protectContent ?? false,
+          watermark: data.watermark ?? false,
+        });
+        return {
+          title: pitch.title,
+          viewUrl: `${baseUrl}/view/${token.token}`,
+          pin,
+        };
+      });
+
       await sendBatchInviteEmail({
         to: toEmail,
-        cc: ccEmails,
+        // CC only on the first recipient's mail to avoid duplicate sends
+        cc: i === 0 ? ccEmails : undefined,
         pitches: pitchEntries,
         message: data.message,
       });
     }
 
-    return NextResponse.json({ success: true, count: pitchEntries.length });
+    return NextResponse.json({ success: true, count: validPitches.length });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors }, { status: 400 });

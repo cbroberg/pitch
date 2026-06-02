@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, MailIcon, SendIcon } from 'lucide-react';
+import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, MailIcon, SendIcon, ShieldIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PitchThumbnail } from '@/components/pitch-thumbnail';
 import { formatDistanceToNow } from 'date-fns';
@@ -43,6 +43,8 @@ export default function PitchesPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteCc, setInviteCc] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
+  const [protectContent, setProtectContent] = useState(false);
+  const [watermark, setWatermark] = useState(false);
   const [sendingInvite, setSendingInvite] = useState(false);
 
   function toggleSelect(id: string, e: React.MouseEvent) {
@@ -71,6 +73,8 @@ export default function PitchesPage() {
           emails: toEmails,
           cc: ccEmails.length > 0 ? ccEmails : undefined,
           message: inviteMessage || undefined,
+          protectContent,
+          watermark,
         }),
       });
       if (!res.ok) throw new Error('Failed');
@@ -80,6 +84,8 @@ export default function PitchesPage() {
       setInviteEmail('');
       setInviteCc('');
       setInviteMessage('');
+      setProtectContent(false);
+      setWatermark(false);
       clearSelection();
     } catch {
       toast.error('Kunne ikke sende invitation');
@@ -411,7 +417,7 @@ export default function PitchesPage() {
 
       {/* Batch invite dialog */}
       <Dialog open={showBatchInvite} onOpenChange={setShowBatchInvite}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MailIcon className="h-4 w-4" />
@@ -455,6 +461,29 @@ export default function PitchesPage() {
                 ))}
               </div>
             </div>
+
+            {/* Content protection — opt-in per send */}
+            <div className="space-y-2 rounded-md border p-3">
+              <Label className="text-muted-foreground text-xs flex items-center gap-1.5">
+                <ShieldIcon className="h-3.5 w-3.5" />
+                Beskyttelse
+              </Label>
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <Checkbox checked={protectContent} onCheckedChange={(v) => setProtectContent(v === true)} className="mt-0.5" />
+                <span className="text-sm leading-snug">
+                  Forhindr gem & kopiering
+                  <span className="block text-xs text-muted-foreground">Deaktiverer højreklik, Cmd+S/Cmd+U og tekstmarkering</span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <Checkbox checked={watermark} onCheckedChange={(v) => setWatermark(v === true)} className="mt-0.5" />
+                <span className="text-sm leading-snug">
+                  Vandmærke med modtagers e-mail
+                  <span className="block text-xs text-muted-foreground">Indlejrer modtagerens e-mail synligt på tværs af pitchen</span>
+                </span>
+              </label>
+            </div>
+
             <Button
               className="w-full gap-2"
               disabled={!inviteEmail || sendingInvite}

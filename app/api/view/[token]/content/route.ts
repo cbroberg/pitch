@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { validateToken } from '@/lib/db/queries/access-tokens';
 import { getPitchById } from '@/lib/db/queries/pitches';
 import { getPitchStoragePath } from '@/lib/storage';
+import { injectProtection } from '@/lib/content-protection';
 import fs from 'fs';
 import path from 'path';
 import mime from 'mime/lite';
@@ -39,9 +40,27 @@ export async function GET(
     return NextResponse.json({ error: 'File not found' }, { status: 404 });
   }
 
-  const buffer = fs.readFileSync(filePath);
   const mimeType = mime.getType(pitch.entryFile) || 'application/octet-stream';
+  const tok = result.tokenRecord;
 
+  // Inject content protection / watermark for HTML pitches when the token opted in
+  if (mimeType === 'text/html' && (tok.protectContent || tok.watermark)) {
+    const html = fs.readFileSync(filePath, 'utf-8');
+    const injected = injectProtection(html, {
+      protect: tok.protectContent,
+      watermark: tok.watermark,
+      watermarkLabel: tok.email || tok.label || 'Fortroligt',
+    });
+    return new NextResponse(injected, {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'X-Frame-Options': 'SAMEORIGIN',
+        'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:;",
+      },
+    });
+  }
+
+  const buffer = fs.readFileSync(filePath);
   return new NextResponse(buffer, {
     headers: {
       'Content-Type': mimeType,

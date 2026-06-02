@@ -141,6 +141,13 @@ export function runMigrations() {
   if (!tokenColNames.includes('pin_attempts')) {
     db.exec(`ALTER TABLE access_tokens ADD COLUMN pin_attempts INTEGER NOT NULL DEFAULT 0`);
   }
+  // Content protection flags for shared tokens
+  if (!tokenColNames.includes('protect_content')) {
+    db.exec(`ALTER TABLE access_tokens ADD COLUMN protect_content INTEGER NOT NULL DEFAULT 0`);
+  }
+  if (!tokenColNames.includes('watermark')) {
+    db.exec(`ALTER TABLE access_tokens ADD COLUMN watermark INTEGER NOT NULL DEFAULT 0`);
+  }
 
   // user_folder_access table
   db.exec(`

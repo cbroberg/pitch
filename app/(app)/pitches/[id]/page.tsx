@@ -51,11 +51,13 @@ import {
   BarChart3Icon,
   EyeIcon,
   ShieldCheckIcon,
+  ShieldIcon,
   LayoutTemplateIcon,
   SparklesIcon,
   RefreshCwIcon,
   DownloadIcon,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { formatDistanceToNow, format } from 'date-fns';
 import type { Pitch, AccessToken, Folder } from '@/lib/db/schema';
 import { PitchThumbnail } from '@/components/pitch-thumbnail';
@@ -114,6 +116,8 @@ export default function PitchDetailPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteExpiry, setInviteExpiry] = useState('never');
+  const [inviteProtect, setInviteProtect] = useState(false);
+  const [inviteWatermark, setInviteWatermark] = useState(false);
   const [suggestingMessage, setSuggestingMessage] = useState(false);
   const [messageContext, setMessageContext] = useState<'pre-meeting' | 'post-meeting'>('pre-meeting');
 
@@ -302,6 +306,8 @@ export default function PitchDetailPage() {
         email: inviteEmail,
         message: inviteMessage || undefined,
         expiresAt: expirySeconds[inviteExpiry] ?? null,
+        protectContent: inviteProtect,
+        watermark: inviteWatermark,
       }),
     });
     if (res.ok) {
@@ -309,6 +315,8 @@ export default function PitchDetailPage() {
       setInviteEmail('');
       setInviteMessage('');
       setInviteExpiry('never');
+      setInviteProtect(false);
+      setInviteWatermark(false);
       toast.success('Invite sent');
       loadTokens();
     } else {
@@ -814,7 +822,7 @@ export default function PitchDetailPage() {
 
       {/* Invite Dialog */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Send Email Invite</DialogTitle>
           </DialogHeader>
@@ -878,6 +886,28 @@ export default function PitchDetailPage() {
                 placeholder="Hi, I wanted to share this pitch with you…"
                 rows={3}
               />
+            </div>
+
+            {/* Content protection — opt-in per send */}
+            <div className="space-y-2 rounded-md border p-3">
+              <Label className="text-muted-foreground text-xs flex items-center gap-1.5">
+                <ShieldIcon className="h-3.5 w-3.5" />
+                Beskyttelse
+              </Label>
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <Checkbox checked={inviteProtect} onCheckedChange={(v) => setInviteProtect(v === true)} className="mt-0.5" />
+                <span className="text-sm leading-snug">
+                  Forhindr gem &amp; kopiering
+                  <span className="block text-xs text-muted-foreground">Deaktiverer højreklik, Cmd+S/Cmd+U og tekstmarkering</span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <Checkbox checked={inviteWatermark} onCheckedChange={(v) => setInviteWatermark(v === true)} className="mt-0.5" />
+                <span className="text-sm leading-snug">
+                  Vandmærke med modtagers e-mail
+                  <span className="block text-xs text-muted-foreground">Indlejrer modtagerens e-mail synligt på tværs af pitchen</span>
+                </span>
+              </label>
             </div>
           </div>
           <DialogFooter>

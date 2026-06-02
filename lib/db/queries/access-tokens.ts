@@ -12,6 +12,8 @@ export function createToken(data: {
   expiresAt?: number | null;
   maxUses?: number | null;
   pin?: string | null;
+  protectContent?: boolean;
+  watermark?: boolean;
 }) {
   return getDb().insert(accessTokens).values(data).returning().get();
 }

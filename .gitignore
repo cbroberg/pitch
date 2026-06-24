@@ -52,3 +52,10 @@ next-env.d.ts
 # pitches — indeholder fortrolige kundepræsentationer
 /pitches/
 /TECH-KNOWLEDGE.md
+
+# cardmem — secret-bearing files, never commit
+.mcp.json
+.env
+.env.*
+!.env.example
+.claude/settings.local.json

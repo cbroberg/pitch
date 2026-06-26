@@ -1,0 +1,26 @@
+# Secrets — must NEVER enter the image (Dockerfile uses `COPY . .`)
+.env
+.env.*
+.lens
+.npmrc
+
+# Local data + confidential content (gitignored, must not ship to prod)
+data
+pitches
+
+# Build artifacts + deps (regenerated in the image)
+node_modules
+.next
+out
+
+# VCS + tooling
+.git
+.gitignore
+.github
+
+# Misc
+*.log
+npm-debug.log*
+.DS_Store
+README*.md
+TESTID-CONVENTION.md

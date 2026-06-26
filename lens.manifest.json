@@ -1,0 +1,17 @@
+{
+  "project": "pitch",
+  "base_url": "http://localhost:4300",
+  "auth": {
+    "adapter": "mintEndpoint",
+    "url": "http://localhost:4300/api/lens-session",
+    "secretPath": ".lens/mint-secret"
+  },
+  "surfaces": [
+    {
+      "name": "pitches-list",
+      "path": "/pitches",
+      "mode": "viewport",
+      "baseline_key": "pitches-list"
+    }
+  ]
+}

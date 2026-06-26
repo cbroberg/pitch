@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import Link from 'next/link';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { EmailTagInput } from '@/components/ui/email-tag-input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -113,7 +114,14 @@ export default function PitchDetailPage() {
   const [tokenLabel, setTokenLabel] = useState('');
 
   // Invite
-  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteEmails, setInviteEmails] = useState<string[]>([]);
+  // Mirror so sendInvite reads the latest list even when an address was only
+  // committed by the input's blur on the same click that pressed Send.
+  const inviteEmailsRef = useRef<string[]>([]);
+  function updateInviteEmails(next: string[]) {
+    inviteEmailsRef.current = next;
+    setInviteEmails(next);
+  }
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteExpiry, setInviteExpiry] = useState('never');
   const [inviteProtect, setInviteProtect] = useState(false);
@@ -292,35 +300,51 @@ export default function PitchDetailPage() {
   }
 
   async function sendInvite() {
+    const recipients = inviteEmailsRef.current;
+    if (recipients.length === 0) return;
     const expirySeconds: Record<string, number | null> = {
       never: null,
       '24h': Math.floor(Date.now() / 1000) + 60 * 60 * 24,
       '7d': Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
       '30d': Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30,
     };
-    const res = await fetch('/api/invite', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pitchId: id,
-        email: inviteEmail,
-        message: inviteMessage || undefined,
-        expiresAt: expirySeconds[inviteExpiry] ?? null,
-        protectContent: inviteProtect,
-        watermark: inviteWatermark,
-      }),
-    });
-    if (res.ok) {
+    // One invite per recipient — each gets its own token so the watermark
+    // identifies the right person.
+    const results = await Promise.all(
+      recipients.map((email) =>
+        fetch('/api/invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pitchId: id,
+            email,
+            message: inviteMessage || undefined,
+            expiresAt: expirySeconds[inviteExpiry] ?? null,
+            protectContent: inviteProtect,
+            watermark: inviteWatermark,
+          }),
+        }).then((r) => r.ok),
+      ),
+    );
+    const sent = results.filter(Boolean).length;
+    const failed = recipients.length - sent;
+
+    if (sent > 0) {
       setInviteDialogOpen(false);
-      setInviteEmail('');
+      updateInviteEmails([]);
       setInviteMessage('');
       setInviteExpiry('never');
       setInviteProtect(false);
       setInviteWatermark(false);
-      toast.success('Invite sent');
+      toast.success(sent === 1 ? 'Invite sent' : `${sent} invites sent`);
       loadTokens();
-    } else {
-      toast.error('Failed to send invite');
+    }
+    if (failed > 0) {
+      toast.error(
+        failed === recipients.length
+          ? 'Failed to send invite'
+          : `${failed} invite(s) failed to send`,
+      );
     }
   }
 
@@ -455,10 +479,10 @@ export default function PitchDetailPage() {
         <div className="max-w-3xl space-y-6">
           <Tabs defaultValue="details" onValueChange={(v) => { if (v === 'access') loadTokens(); }}>
             <TabsList>
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="files">Files</TabsTrigger>
+              <TabsTrigger value="details" data-testid="tab-details">Details</TabsTrigger>
+              <TabsTrigger value="files" data-testid="tab-files">Files</TabsTrigger>
               {userRole !== 'viewer' && (
-                <TabsTrigger value="access">Access</TabsTrigger>
+                <TabsTrigger value="access" data-testid="tab-access">Access</TabsTrigger>
               )}
             </TabsList>
 
@@ -662,6 +686,7 @@ export default function PitchDetailPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => setInviteDialogOpen(true)}
+                    data-testid="invite-open"
                   >
                     <MailIcon className="mr-1 h-3.5 w-3.5" />
                     Send Invite
@@ -829,12 +854,15 @@ export default function PitchDetailPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Recipient Email</Label>
-              <Input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
+              <EmailTagInput
+                value={inviteEmails}
+                onChange={updateInviteEmails}
                 placeholder="investor@example.com"
+                testId="invite-recipients"
               />
+              <p className="text-xs text-muted-foreground">
+                Tryk komma eller Enter for at tilføje flere modtagere.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Link expires</Label>
@@ -885,6 +913,7 @@ export default function PitchDetailPage() {
                 onChange={(e) => setInviteMessage(e.target.value)}
                 placeholder="Hi, I wanted to share this pitch with you…"
                 rows={3}
+                data-testid="invite-message"
               />
             </div>
 
@@ -914,7 +943,7 @@ export default function PitchDetailPage() {
             <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={sendInvite} disabled={!inviteEmail}>
+            <Button onClick={sendInvite} disabled={inviteEmails.length === 0} data-testid="invite-send">
               <MailIcon className="mr-1 h-4 w-4" />
               Send Invite
             </Button>

@@ -1,3 +1,5 @@
+import { EMAIL_FOOTER } from '@/lib/email/footer';
+
 export function buildBatchInviteEmail(params: {
   pitches: { title: string; viewUrl: string; pin?: string }[];
   message?: string;
@@ -38,7 +40,7 @@ export function buildBatchInviteEmail(params: {
       ${pitchRows}
     </div>
     <div style="background: #f3f4f6; padding: 16px; text-align: center;">
-      <p style="margin: 0; color: #9ca3af; font-size: 12px;">Shared via Pitch Vault and powered by broberg.ai</p>
+      <p style="margin: 0; color: #9ca3af; font-size: 12px;">${EMAIL_FOOTER}</p>
     </div>
   </div>
 </body>
@@ -56,7 +58,7 @@ export function buildBatchInviteEmail(params: {
     message ? '' : '',
     textPitches,
     '',
-    '— Shared via Pitch Vault and powered by broberg.ai',
+    `— ${EMAIL_FOOTER}`,
   ]
     .filter((l) => l !== undefined)
     .join('\n');

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserId } from '@/lib/get-user-id';
+import { EMAIL_FOOTER } from '@/lib/email/footer';
 import { getPitchById } from '@/lib/db/queries/pitches';
 import { getPitchStoragePath } from '@/lib/storage';
 import { Anthropic } from '@anthropic-ai/sdk';
@@ -98,7 +99,7 @@ Skriv KUN beskeden selv på dansk, ingen forklaringer eller præambel.`;
     }
 
     // Add footer with broberg.ai branding
-    const footer = '\n\n---\nShared via Pitch Vault and powered by broberg.ai';
+    const footer = `\n\n---\n${EMAIL_FOOTER}`;
     finalMessage += footer;
 
     return NextResponse.json({ message: finalMessage });

@@ -123,7 +123,24 @@ async function slidesToPdf(shots: Buffer[]): Promise<Buffer> {
  * `extraStyle` is optional CSS injected before render (used to bake a watermark
  * into the PDF for protected-but-watermarked viewer downloads).
  */
-export async function generatePitchPdf(
+// Serialize PDF jobs: launching several Chromium instances at once would exhaust
+// a small single-CPU machine. Each call waits for the previous one to finish.
+let pdfChain: Promise<unknown> = Promise.resolve();
+
+export function generatePitchPdf(
+  dir: string,
+  entryFile?: string | null,
+  opts?: { extraHtml?: string },
+): Promise<Buffer> {
+  const run = pdfChain.then(
+    () => renderPdf(dir, entryFile, opts),
+    () => renderPdf(dir, entryFile, opts),
+  );
+  pdfChain = run.catch(() => {});
+  return run;
+}
+
+async function renderPdf(
   dir: string,
   entryFile?: string | null,
   opts?: { extraHtml?: string },
@@ -135,7 +152,9 @@ export async function generatePitchPdf(
   try {
     const ctx = await browser.newContext({
       viewport: { width: SLIDE_W, height: SLIDE_H },
-      deviceScaleFactor: 2,
+      // 1x keeps memory + the synchronous pdf-lib image embedding light enough
+      // that a single shared-CPU machine stays responsive to health checks.
+      deviceScaleFactor: 1,
     });
     const page = await ctx.newPage();
     await page.goto(pathToFileURL(htmlFile).href, {

@@ -126,6 +126,7 @@ export default function PitchDetailPage() {
   const [inviteExpiry, setInviteExpiry] = useState('never');
   const [inviteProtect, setInviteProtect] = useState(false);
   const [inviteWatermark, setInviteWatermark] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [suggestingMessage, setSuggestingMessage] = useState(false);
   const [messageContext, setMessageContext] = useState<'pre-meeting' | 'post-meeting'>('pre-meeting');
 
@@ -299,6 +300,28 @@ export default function PitchDetailPage() {
     }
   }
 
+  async function downloadPdf() {
+    setDownloadingPdf(true);
+    try {
+      const res = await fetch(`/api/pitches/${id}/pdf`);
+      if (!res.ok) throw new Error('export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${pitch?.slug || 'pitch'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('PDF downloaded');
+    } catch {
+      toast.error('PDF export failed');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }
+
   async function sendInvite() {
     const recipients = inviteEmailsRef.current;
     if (recipients.length === 0) return;
@@ -451,6 +474,18 @@ export default function PitchDetailPage() {
                   <BarChart3Icon className="mr-1 h-3.5 w-3.5" />
                   Stats
                 </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadPdf}
+                disabled={downloadingPdf}
+                data-testid="pitch-download-pdf"
+              >
+                <DownloadIcon
+                  className={cn('mr-1 h-3.5 w-3.5', downloadingPdf && 'animate-pulse')}
+                />
+                {downloadingPdf ? 'Genererer PDF…' : 'Download PDF'}
               </Button>
               <Button
                 variant="outline"

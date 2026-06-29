@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
-import { chromium } from 'playwright-core';
 import sharp from 'sharp';
+import { launchChromium } from '@/lib/browser';
 import { getPitchStoragePath, getTemplateStoragePath } from '@/lib/storage';
 
 export function thumbnailPath(pitchId: string): string {
@@ -10,19 +10,6 @@ export function thumbnailPath(pitchId: string): string {
 
 export function templateThumbnailPath(templateId: string): string {
   return path.join(getTemplateStoragePath(templateId), '.thumb.jpg');
-}
-
-function findChromium(): string | undefined {
-  const candidates = [
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-  ];
-  for (const c of candidates) {
-    if (fs.existsSync(c)) return c;
-  }
-  return undefined;
 }
 
 async function captureHtmlThumbnail(dir: string, outputPath: string, entryFile?: string | null): Promise<void> {
@@ -39,28 +26,7 @@ async function captureHtmlThumbnail(dir: string, outputPath: string, entryFile?:
 
   const html = fs.readFileSync(htmlFile, 'utf-8');
 
-  const executablePath =
-    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ??
-    process.env.CHROMIUM_PATH ??
-    findChromium();
-
-  const browser = await chromium.launch({
-    headless: true,
-    executablePath,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--disable-gpu-sandbox',
-      '--disable-software-rasterizer',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-extensions',
-      '--mute-audio',
-    ],
-  });
+  const browser = await launchChromium();
 
   try {
     const ctx = await browser.newContext({

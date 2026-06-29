@@ -5,6 +5,7 @@ import { pathToFileURL } from 'url';
 import { PDFDocument } from 'pdf-lib';
 import type { Page } from 'playwright-core';
 import { launchChromium } from '@/lib/browser';
+import { getPitchStoragePath } from '@/lib/storage';
 
 const SLIDE_W = 1280;
 const SLIDE_H = 720;
@@ -115,36 +116,68 @@ async function slidesToPdf(shots: Buffer[]): Promise<Buffer> {
   return Buffer.from(await pdf.save());
 }
 
+/** Where a pitch's cached PDF lives (sibling to its `.thumb.jpg`). */
+export function pdfCachePath(pitchId: string): string {
+  return path.join(getPitchStoragePath(pitchId), '.export.pdf');
+}
+
+/** Newest modification time among the pitch's real source files (ignores the
+ *  dot-prefixed caches like `.export.pdf` / `.thumb.jpg`). */
+function newestSourceMtime(dir: string): number {
+  let newest = 0;
+  if (!fs.existsSync(dir)) return newest;
+  for (const f of fs.readdirSync(dir)) {
+    if (f.startsWith('.')) continue;
+    const m = fs.statSync(path.join(dir, f)).mtimeMs;
+    if (m > newest) newest = m;
+  }
+  return newest;
+}
+
 /**
- * Render a pitch to a PDF. Auto-detects format:
- * - slide deck (≥2 `.slide` elements) → one landscape slide per page
- * - document → normal paginated A4
- *
- * `extraStyle` is optional CSS injected before render (used to bake a watermark
- * into the PDF for protected-but-watermarked viewer downloads).
+ * Serve a pitch's PDF from cache, regenerating only when a source file has
+ * changed since the cache was written (so an edit/re-upload invalidates it
+ * automatically, with no per-route bookkeeping). Repeat downloads are instant.
  */
+export async function getCachedPitchPdf(
+  pitchId: string,
+  entryFile?: string | null,
+): Promise<Buffer> {
+  const dir = getPitchStoragePath(pitchId);
+  const cache = pdfCachePath(pitchId);
+
+  if (fs.existsSync(cache) && fs.statSync(cache).mtimeMs >= newestSourceMtime(dir)) {
+    return fs.readFileSync(cache);
+  }
+
+  const pdf = await generatePitchPdf(dir, entryFile);
+  try {
+    fs.writeFileSync(cache, pdf);
+  } catch (e) {
+    console.error('[pdf] cache write failed', e);
+  }
+  return pdf;
+}
+
 // Serialize PDF jobs: launching several Chromium instances at once would exhaust
 // a small single-CPU machine. Each call waits for the previous one to finish.
 let pdfChain: Promise<unknown> = Promise.resolve();
 
+/** Render a pitch to a PDF, auto-detecting deck vs document. Prefer
+ *  {@link getCachedPitchPdf} on the request path; this always re-renders. */
 export function generatePitchPdf(
   dir: string,
   entryFile?: string | null,
-  opts?: { extraHtml?: string },
 ): Promise<Buffer> {
   const run = pdfChain.then(
-    () => renderPdf(dir, entryFile, opts),
-    () => renderPdf(dir, entryFile, opts),
+    () => renderPdf(dir, entryFile),
+    () => renderPdf(dir, entryFile),
   );
   pdfChain = run.catch(() => {});
   return run;
 }
 
-async function renderPdf(
-  dir: string,
-  entryFile?: string | null,
-  opts?: { extraHtml?: string },
-): Promise<Buffer> {
+async function renderPdf(dir: string, entryFile?: string | null): Promise<Buffer> {
   const htmlFile = resolveHtmlFile(dir, entryFile);
   if (!htmlFile) throw new Error('No HTML entry file to render');
 
@@ -162,14 +195,6 @@ async function renderPdf(
       timeout: 30000,
     });
     await page.waitForTimeout(900); // fonts + entry animations settle
-
-    if (opts?.extraHtml) {
-      await page.evaluate((html) => {
-        const div = document.createElement('div');
-        div.innerHTML = html;
-        document.body.appendChild(div.firstElementChild ?? div);
-      }, opts.extraHtml);
-    }
 
     // 1) Keyboard-navigated (ArrowRight) deck → one landscape slide per page.
     const keyed = await captureDeck(page);

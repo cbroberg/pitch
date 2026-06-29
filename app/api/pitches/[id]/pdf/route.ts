@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserId } from '@/lib/get-user-id';
 import { getPitchById } from '@/lib/db/queries/pitches';
-import { getPitchStoragePath } from '@/lib/storage';
-import { generatePitchPdf } from '@/lib/pdf';
+import { getCachedPitchPdf } from '@/lib/pdf';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,7 +24,7 @@ export async function GET(
   }
 
   try {
-    const pdf = await generatePitchPdf(getPitchStoragePath(id), pitch.entryFile);
+    const pdf = await getCachedPitchPdf(id, pitch.entryFile);
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
         'Content-Type': 'application/pdf',

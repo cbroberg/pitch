@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateToken } from '@/lib/db/queries/access-tokens';
 import { getPitchById } from '@/lib/db/queries/pitches';
-import { getPitchStoragePath } from '@/lib/storage';
-import { generatePitchPdf } from '@/lib/pdf';
+import { getCachedPitchPdf } from '@/lib/pdf';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -40,7 +39,7 @@ export async function GET(
   }
 
   try {
-    const pdf = await generatePitchPdf(getPitchStoragePath(pitch.id), pitch.entryFile);
+    const pdf = await getCachedPitchPdf(pitch.id, pitch.entryFile);
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
         'Content-Type': 'application/pdf',

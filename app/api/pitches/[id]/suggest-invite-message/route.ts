@@ -4,8 +4,8 @@ import { EMAIL_FOOTER } from '@/lib/email/footer';
 import { getPitchById } from '@/lib/db/queries/pitches';
 import { getPitchStoragePath } from '@/lib/storage';
 import { aiChat } from '@/lib/ai';
+import { resolveWithinDir } from '@/lib/safe-path';
 import fs from 'fs';
-import path from 'path';
 
 export async function POST(
   request: NextRequest,
@@ -28,8 +28,8 @@ export async function POST(
 
     // Read pitch content
     const dir = getPitchStoragePath(id);
-    const filePath = path.resolve(dir, pitch.entryFile);
-    if (!filePath.startsWith(dir)) {
+    const filePath = resolveWithinDir(dir, pitch.entryFile);
+    if (!filePath) {
       return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
     }
     if (!fs.existsSync(filePath)) {

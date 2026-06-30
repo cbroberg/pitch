@@ -3,11 +3,9 @@ import { getUserId } from '@/lib/get-user-id';
 import { EMAIL_FOOTER } from '@/lib/email/footer';
 import { getPitchById } from '@/lib/db/queries/pitches';
 import { getPitchStoragePath } from '@/lib/storage';
-import { Anthropic } from '@anthropic-ai/sdk';
+import { aiChat } from '@/lib/ai';
 import fs from 'fs';
 import path from 'path';
-
-const client = new Anthropic();
 
 export async function POST(
   request: NextRequest,
@@ -79,18 +77,13 @@ ${truncatedContent}
 
 Skriv KUN beskeden selv på dansk, ingen forklaringer eller præambel.`;
 
-    const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
-      messages: [
-        {
-          role: 'user',
-          content: promptText,
-        },
-      ],
+    const { text } = await aiChat({
+      prompt: promptText,
+      maxTokens: 300,
+      purpose: 'suggest-invite',
     });
 
-    const suggestion = message.content[0].type === 'text' ? message.content[0].text : '';
+    const suggestion = text;
 
     // Ensure signature is included
     let finalMessage = suggestion.trim();

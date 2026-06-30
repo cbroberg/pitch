@@ -6,7 +6,7 @@ import { getTemplateById } from '@/lib/db/queries/templates';
 import { readTemplateFile } from '@/lib/template-files';
 import { savePitchFile } from '@/lib/upload';
 import { generateUniqueSlug } from '@/lib/slug';
-import { getAnthropicClient } from '@/lib/anthropic';
+import { aiChat } from '@/lib/ai';
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,16 +58,15 @@ Emne: ${prompt}`
 Emne: ${prompt}`;
 
   try {
-    const anthropic = getAnthropicClient();
-    const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 8192,
-      temperature: 0.7 as never,
+    const { text } = await aiChat({
       system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
+      prompt: userPrompt,
+      maxTokens: 8192,
+      temperature: 0.7,
+      purpose: 'generate-pitch',
     });
 
-    let html = (message.content[0] as { type: string; text: string }).text;
+    let html = text;
     // Strip markdown code fences if present
     html = html.replace(/^```html\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
 

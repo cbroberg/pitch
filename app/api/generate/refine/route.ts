@@ -3,7 +3,7 @@ import { getUserId } from '@/lib/get-user-id';
 import { getPitchById } from '@/lib/db/queries/pitches';
 import { savePitchFile } from '@/lib/upload';
 import { getPitchStoragePath } from '@/lib/storage';
-import { getAnthropicClient } from '@/lib/anthropic';
+import { aiChat } from '@/lib/ai';
 import fs from 'fs';
 import path from 'path';
 
@@ -57,18 +57,14 @@ ${currentHtml}
 Brugerens ønske: ${userMessage}`;
 
   try {
-    const anthropic = getAnthropicClient();
-    const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 8192,
+    const { text } = await aiChat({
       system: systemPrompt,
-      messages: [
-        ...previousTurns,
-        { role: 'user', content: currentTurn },
-      ],
+      messages: [...previousTurns, { role: 'user', content: currentTurn }],
+      maxTokens: 8192,
+      purpose: 'refine-pitch',
     });
 
-    let html = (message.content[0] as { type: string; text: string }).text;
+    let html = text;
     html = html.replace(/^```html\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
 
     await savePitchFile(pitchId, 'index.html', Buffer.from(html, 'utf-8'));

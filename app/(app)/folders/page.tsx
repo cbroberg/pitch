@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,7 @@ export default function FoldersPage() {
   const [deleteFolder, setDeleteFolder] = useState<FolderTree | null>(null);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function loadFolders() {
     const res = await fetch('/api/folders');
@@ -104,7 +106,20 @@ export default function FoldersPage() {
   function FolderNode({ folder, depth = 0 }: { folder: FolderTree; depth?: number }) {
     return (
       <div style={{ paddingLeft: depth * 16 }}>
-        <div className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-muted/50">
+        <div
+          data-testid={`folder-row-${folder.id}`}
+          role="button"
+          tabIndex={0}
+          aria-label={`Vis pitches i ${folder.name}`}
+          className="group flex cursor-pointer items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-muted/50 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          onClick={() => router.push(`/pitches?folder=${folder.id}`)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              router.push(`/pitches?folder=${folder.id}`);
+            }
+          }}
+        >
           <div className="flex items-center gap-2">
             <FolderIcon className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium">{folder.name}</span>
@@ -114,7 +129,8 @@ export default function FoldersPage() {
               variant="ghost"
               size="icon"
               className="h-7 w-7"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 setEditFolder(folder);
                 setName(folder.name);
               }}
@@ -125,7 +141,10 @@ export default function FoldersPage() {
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-destructive"
-              onClick={() => setDeleteFolder(folder)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteFolder(folder);
+              }}
             >
               <TrashIcon className="h-3.5 w-3.5" />
             </Button>

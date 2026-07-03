@@ -22,13 +22,30 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, MailIcon, SendIcon, ShieldIcon } from 'lucide-react';
+import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, MailIcon, SendIcon, ShieldIcon, FolderIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PitchThumbnail } from '@/components/pitch-thumbnail';
 import { formatDistanceToNow } from 'date-fns';
 import type { Pitch } from '@/lib/db/schema';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { FolderTree } from '@/lib/db/queries/folders';
 
 type ViewMode = 'grid' | 'list';
+
+type FlatFolder = { id: string; name: string; depth: number };
+
+function flattenFolders(tree: FolderTree[], depth = 0): FlatFolder[] {
+  return tree.flatMap((f) => [
+    { id: f.id, name: f.name, depth },
+    ...flattenFolders(f.children, depth + 1),
+  ]);
+}
 
 export default function PitchesPage() {
   const router = useRouter();
@@ -46,6 +63,8 @@ export default function PitchesPage() {
   const [protectContent, setProtectContent] = useState(false);
   const [watermark, setWatermark] = useState(false);
   const [sendingInvite, setSendingInvite] = useState(false);
+  const [folders, setFolders] = useState<FlatFolder[]>([]);
+  const [folderFilter, setFolderFilter] = useState<string>('all');
 
   function toggleSelect(id: string, e: React.MouseEvent) {
     e.preventDefault();
@@ -118,6 +137,20 @@ export default function PitchesPage() {
       .then(setPitches);
   }, []);
 
+  useEffect(() => {
+    fetch('/api/folders')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((tree: FolderTree[]) => setFolders(flattenFolders(tree)))
+      .catch(() => {});
+  }, []);
+
+  // Restore an active folder filter from the URL (?folder=<id>) — e.g. when
+  // arriving from a folder click on the Folders page.
+  useEffect(() => {
+    const f = new URLSearchParams(window.location.search).get('folder');
+    if (f) setFolderFilter(f);
+  }, []);
+
   // Cmd+K / Ctrl+K opens search
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -140,17 +173,32 @@ export default function PitchesPage() {
     localStorage.setItem('pitches-view-mode', mode);
   }
 
+  function handleFolderChange(value: string) {
+    setFolderFilter(value);
+    const url = value === 'all' ? '/pitches' : `/pitches?folder=${value}`;
+    window.history.replaceState(null, '', url);
+  }
+
+  function clearFilters() {
+    setQuery('');
+    handleFolderChange('all');
+  }
+
   const filtered = pitches
-    ? query.trim()
-      ? pitches.filter((p) => {
+    ? pitches.filter((p) => {
+        if (folderFilter !== 'all' && p.folderId !== folderFilter) return false;
+        if (query.trim()) {
           const q = query.toLowerCase();
           return (
             p.title.toLowerCase().includes(q) ||
             (p.description ?? '').toLowerCase().includes(q)
           );
-        })
-      : pitches
+        }
+        return true;
+      })
     : null;
+
+  const hasActiveFilter = query.trim() !== '' || folderFilter !== 'all';
 
   return (
     <TooltipProvider>
@@ -182,6 +230,29 @@ export default function PitchesPage() {
             </kbd>
           )}
         </div>
+
+        {/* Folder filter */}
+        {folders.length > 0 && (
+          <Select value={folderFilter} onValueChange={handleFolderChange}>
+            <SelectTrigger
+              data-testid="pitches-folder-filter"
+              aria-label="Filtrér efter mappe"
+              className="h-8 w-auto min-w-[130px] max-w-[200px] gap-1.5 text-sm shrink-0"
+            >
+              <FolderIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle mapper</SelectItem>
+              {folders.map((f) => (
+                <SelectItem key={f.id} value={f.id}>
+                  {f.depth > 0 ? '— '.repeat(f.depth) : ''}
+                  {f.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         <div className="ml-auto flex items-center gap-1 shrink-0">
           <div className="flex items-center rounded-md border p-0.5">
@@ -246,11 +317,15 @@ export default function PitchesPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <PresentationIcon className="mb-3 h-12 w-12 text-muted-foreground" />
-                {query ? (
+                {hasActiveFilter ? (
                   <>
                     <p className="text-lg font-medium">Ingen resultater</p>
-                    <p className="text-muted-foreground mb-4">Ingen pitches matcher &ldquo;{query}&rdquo;</p>
-                    <Button variant="outline" onClick={() => setQuery('')}>Ryd søgning</Button>
+                    <p className="text-muted-foreground mb-4">
+                      {query
+                        ? <>Ingen pitches matcher &ldquo;{query}&rdquo;</>
+                        : 'Ingen pitches i den valgte mappe'}
+                    </p>
+                    <Button variant="outline" onClick={clearFilters}>Ryd filtre</Button>
                   </>
                 ) : (
                   <>

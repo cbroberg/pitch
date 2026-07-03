@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, MailIcon, SendIcon, ShieldIcon, FolderIcon } from 'lucide-react';
+import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, MailIcon, SendIcon, ShieldIcon, FolderIcon, MoreVerticalIcon, FolderInputIcon, CheckIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PitchThumbnail } from '@/components/pitch-thumbnail';
 import { formatDistanceToNow } from 'date-fns';
@@ -34,6 +34,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { FolderTree } from '@/lib/db/queries/folders';
 
 type ViewMode = 'grid' | 'list';
@@ -77,6 +86,67 @@ export default function PitchesPage() {
   }
 
   function clearSelection() { setSelectedIds(new Set()); }
+
+  async function moveToFolder(pitchIds: string[], folderId: string | null) {
+    const results = await Promise.allSettled(
+      pitchIds.map((pid) =>
+        fetch(`/api/pitches/${pid}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderId }),
+        }).then((r) => {
+          if (!r.ok) throw new Error('failed');
+        }),
+      ),
+    );
+    const moved = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = pitchIds.length - moved;
+    if (moved > 0) {
+      setPitches((prev) =>
+        prev ? prev.map((p) => (pitchIds.includes(p.id) ? { ...p, folderId } : p)) : prev,
+      );
+      const target = folderId
+        ? folders.find((f) => f.id === folderId)?.name ?? 'mappe'
+        : 'Ingen mappe';
+      toast.success(`${moved} pitch${moved === 1 ? '' : 'es'} flyttet til ${target}`);
+    }
+    if (failed > 0) toast.error(`Kunne ikke flytte ${failed} pitch${failed === 1 ? '' : 'es'}`);
+  }
+
+  // Shared folder-target list for the per-pitch ⋯ submenu and the batch bar.
+  function folderMenuItems(
+    pitchIds: string[],
+    currentFolderId?: string | null,
+    onAfter?: () => void,
+  ) {
+    const doMove = async (folderId: string | null) => {
+      await moveToFolder(pitchIds, folderId);
+      onAfter?.();
+    };
+    return (
+      <>
+        <DropdownMenuItem
+          data-testid="move-folder-none"
+          disabled={currentFolderId === null}
+          onSelect={() => doMove(null)}
+        >
+          <CheckIcon className={currentFolderId === null ? 'opacity-100' : 'opacity-0'} />
+          <span className="text-muted-foreground">Ingen mappe</span>
+        </DropdownMenuItem>
+        {folders.map((f) => (
+          <DropdownMenuItem
+            key={f.id}
+            data-testid={`move-folder-${f.id}`}
+            disabled={currentFolderId === f.id}
+            onSelect={() => doMove(f.id)}
+          >
+            <CheckIcon className={currentFolderId === f.id ? 'opacity-100' : 'opacity-0'} />
+            <span>{f.depth > 0 ? '— '.repeat(f.depth) : ''}{f.name}</span>
+          </DropdownMenuItem>
+        ))}
+      </>
+    );
+  }
 
   async function sendBatchInvite() {
     if (!inviteEmail || selectedIds.size === 0) return;
@@ -399,6 +469,32 @@ export default function PitchesPage() {
                               <ExternalLinkIcon className="h-3.5 w-3.5" />
                             </a>
                           </Button>
+                          {userRole !== 'viewer' && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 shrink-0"
+                                  data-testid={`pitch-actions-${pitch.id}`}
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                >
+                                  <MoreVerticalIcon className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger className="gap-2" data-testid="pitch-move-submenu">
+                                    <FolderInputIcon className="h-3.5 w-3.5" />
+                                    Flyt til mappe
+                                  </DropdownMenuSubTrigger>
+                                  <DropdownMenuSubContent>
+                                    {folderMenuItems([pitch.id], pitch.folderId)}
+                                  </DropdownMenuSubContent>
+                                </DropdownMenuSub>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -414,7 +510,7 @@ export default function PitchesPage() {
                   className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50 cursor-pointer ${selectedIds.has(pitch.id) ? 'bg-muted/30' : ''}`}
                   onClick={() => router.push(`/pitches/${pitch.id}`)}
                 >
-                  <div onClick={(e) => toggleSelect(pitch.id, e)} className="shrink-0">
+                  <div onClick={(e) => toggleSelect(pitch.id, e)} className="shrink-0" data-testid={`pitch-select-${pitch.id}`}>
                     <Checkbox
                       checked={selectedIds.has(pitch.id)}
                       className="opacity-25 hover:opacity-100 data-[state=checked]:opacity-100 transition-opacity"
@@ -468,6 +564,32 @@ export default function PitchesPage() {
                     >
                       <ExternalLinkIcon className="h-3.5 w-3.5" />
                     </Button>
+                    {userRole !== 'viewer' && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            data-testid={`pitch-actions-${pitch.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVerticalIcon className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger className="gap-2" data-testid="pitch-move-submenu">
+                              <FolderInputIcon className="h-3.5 w-3.5" />
+                              Flyt til mappe
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                              {folderMenuItems([pitch.id], pitch.folderId)}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
               ))}
@@ -484,6 +606,19 @@ export default function PitchesPage() {
             <MailIcon className="h-3.5 w-3.5" />
             Send invitation
           </Button>
+          {folders.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="secondary" className="h-8 gap-1.5" data-testid="pitches-batch-move">
+                  <FolderInputIcon className="h-3.5 w-3.5" />
+                  Flyt til mappe
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" side="top">
+                {folderMenuItems(Array.from(selectedIds), undefined, clearSelection)}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <Button size="sm" variant="ghost" className="h-8" onClick={clearSelection}>
             <XIcon className="h-3.5 w-3.5" />
           </Button>

@@ -2,7 +2,13 @@
 // Goal: installability + a resilient shell. Data/API is never intercepted;
 // images/fonts are cache-first; HTML/JS/CSS are network-first (so dev + deploys
 // stay fresh) with a cache fallback for offline.
-const CACHE = 'pitch-vault-v1';
+//
+// SW_BUILD is stamped to a unique token per deploy by scripts/stamp-sw.cjs so a
+// new build ships a byte-changed sw.js → the browser installs it into "waiting"
+// and the in-app update banner can offer it (F021). Update is USER-gated: we do
+// NOT skipWaiting on install; the page posts SKIP_WAITING when the user taps.
+const SW_BUILD = 'dev';
+const CACHE = 'pitch-vault-' + SW_BUILD;
 const SHELL = [
   '/favicon.svg',
   '/apple-touch-icon.png',
@@ -13,7 +19,8 @@ const SHELL = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL).catch(() => {})));
-  self.skipWaiting();
+  // No skipWaiting() here: a new SW stays "waiting" until the user taps Update,
+  // so we never surprise-reload the app mid-use.
 });
 
 self.addEventListener('activate', (event) => {
@@ -23,6 +30,12 @@ self.addEventListener('activate', (event) => {
     ),
   );
   self.clients.claim();
+});
+
+// The update banner posts this when the user taps Update; activating the waiting
+// SW fires controllerchange, which the page uses to reload exactly once.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {

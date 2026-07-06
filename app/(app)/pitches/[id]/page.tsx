@@ -38,6 +38,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { toast } from 'sonner';
 import {
   ArrowLeftIcon,
@@ -57,6 +65,7 @@ import {
   SparklesIcon,
   RefreshCwIcon,
   DownloadIcon,
+  MoreVerticalIcon,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -437,14 +446,16 @@ export default function PitchDetailPage() {
             <ArrowLeftIcon className="h-4 w-4" />
           </Link>
         </Button>
-        <h1 className="text-base font-semibold truncate">{pitch.title}</h1>
+        <h1 className="text-base font-semibold truncate min-w-0">{pitch.title}</h1>
         <Badge
           variant={pitch.isPublished ? 'default' : 'secondary'}
           className="shrink-0"
         >
           {pitch.isPublished ? 'Live' : 'Draft'}
         </Badge>
-        <div className="ml-auto flex items-center gap-2">
+
+        {/* Desktop toolbar — collapses into a bottom sheet on mobile (below) */}
+        <div className="ml-auto hidden items-center gap-2 sm:flex">
           <Button asChild variant="outline" size="sm">
             <a href={`/preview/${id}`} target="_blank" rel="noopener noreferrer">
               <EyeIcon className="mr-1 h-3.5 w-3.5" />
@@ -508,6 +519,115 @@ export default function PitchDetailPage() {
             </>
           )}
         </div>
+
+        {/* Mobile actions — one bottom sheet instead of an overflowing toolbar */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="ml-auto h-9 w-9 shrink-0 sm:hidden"
+              data-testid="pitch-actions-mobile"
+              aria-label="Handlinger"
+            >
+              <MoreVerticalIcon className="h-4 w-4" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="rounded-t-2xl pb-[max(env(safe-area-inset-bottom),1rem)]">
+            <SheetHeader className="text-left">
+              <SheetTitle>Handlinger</SheetTitle>
+            </SheetHeader>
+            <div className="grid gap-1 pt-2">
+              <SheetClose asChild>
+                <a
+                  href={`/preview/${id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted active:bg-muted"
+                  data-testid="pitch-action-preview"
+                >
+                  <EyeIcon className="h-4 w-4 text-muted-foreground" />
+                  Preview
+                </a>
+              </SheetClose>
+              {userRole !== 'viewer' && (
+                <>
+                  {pitch.fileType === 'html' && (
+                    <>
+                      <SheetClose asChild>
+                        <Link
+                          href={`/pitches/${id}/visual`}
+                          className="flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted active:bg-muted"
+                          data-testid="pitch-action-visual"
+                        >
+                          <MousePointer2Icon className="h-4 w-4 text-muted-foreground" />
+                          Visual Edit
+                        </Link>
+                      </SheetClose>
+                      <SheetClose asChild>
+                        <Link
+                          href={`/pitches/${id}/ai`}
+                          className="flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted active:bg-muted"
+                          data-testid="pitch-action-ai"
+                        >
+                          <SparklesIcon className="h-4 w-4 text-muted-foreground" />
+                          Edit med AI
+                        </Link>
+                      </SheetClose>
+                    </>
+                  )}
+                  <SheetClose asChild>
+                    <Link
+                      href={`/pitches/${id}/stats`}
+                      className="flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted active:bg-muted"
+                      data-testid="pitch-action-stats"
+                    >
+                      <BarChart3Icon className="h-4 w-4 text-muted-foreground" />
+                      Stats
+                    </Link>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <button
+                      type="button"
+                      onClick={downloadPdf}
+                      disabled={downloadingPdf}
+                      className="flex h-12 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted active:bg-muted disabled:opacity-60"
+                      data-testid="pitch-action-pdf"
+                    >
+                      <DownloadIcon className={cn('h-4 w-4 text-muted-foreground', downloadingPdf && 'animate-pulse')} />
+                      {downloadingPdf ? 'Genererer PDF…' : 'Download PDF'}
+                    </button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTemplateName(pitch.title);
+                        setTemplateDialogOpen(true);
+                      }}
+                      className="flex h-12 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium hover:bg-muted active:bg-muted"
+                      data-testid="pitch-action-template"
+                    >
+                      <LayoutTemplateIcon className="h-4 w-4 text-muted-foreground" />
+                      Gem som skabelon
+                    </button>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteOpen(true)}
+                      className="flex h-12 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-destructive hover:bg-destructive/10 active:bg-destructive/10"
+                      data-testid="pitch-action-delete"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                      Slet pitch
+                    </button>
+                  </SheetClose>
+                </>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
       </header>
 
       <main className="flex-1 p-4 md:p-6">

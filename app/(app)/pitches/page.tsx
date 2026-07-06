@@ -193,6 +193,8 @@ export default function PitchesPage() {
   }
 
   useEffect(() => {
+    const urlView = new URLSearchParams(window.location.search).get('view');
+    if (urlView === 'grid' || urlView === 'list') { setViewMode(urlView); return; }
     const saved = localStorage.getItem('pitches-view-mode') as ViewMode | null;
     if (saved === 'grid' || saved === 'list') setViewMode(saved);
   }, []);
@@ -277,10 +279,10 @@ export default function PitchesPage() {
         <SidebarTrigger className="shrink-0" />
         <h1 className="text-base font-semibold shrink-0">Pitches</h1>
 
-        {/* Search + folder filter — own full-width row on mobile */}
-        <div className="order-last flex w-full items-center gap-2 sm:order-none sm:ml-1 sm:w-auto sm:flex-1 sm:min-w-0">
+        {/* Search + folder filter — stacked full-width rows on mobile, inline on desktop */}
+        <div className="order-last flex w-full flex-col gap-2 sm:order-none sm:ml-1 sm:w-auto sm:flex-1 sm:min-w-0 sm:flex-row sm:items-center">
         {/* Search */}
-        <div className="relative flex-1 min-w-0 sm:max-w-[220px]">
+        <div className="relative w-full min-w-0 sm:flex-1 sm:max-w-[220px]">
           <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <Input
             ref={searchRef}
@@ -309,7 +311,7 @@ export default function PitchesPage() {
             <SelectTrigger
               data-testid="pitches-folder-filter"
               aria-label="Filtrér efter mappe"
-              className="h-8 w-auto min-w-[130px] max-w-[200px] gap-1.5 text-sm shrink-0"
+              className="h-8 w-full gap-1.5 text-sm sm:w-auto sm:min-w-[130px] sm:max-w-[200px] sm:shrink-0"
             >
               <FolderIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <SelectValue />
@@ -414,7 +416,19 @@ export default function PitchesPage() {
           ) : viewMode === 'grid' ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((pitch) => (
-                <Link key={pitch.id} href={`/pitches/${pitch.id}`}>
+                <div
+                  key={pitch.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push(`/pitches/${pitch.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      router.push(`/pitches/${pitch.id}`);
+                    }
+                  }}
+                  className="rounded-xl focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
                   <Card className="h-full transition-colors hover:bg-muted/50 cursor-pointer overflow-hidden">
                     <PitchThumbnail pitchId={pitch.id} fileType={pitch.fileType} className="w-full aspect-video object-cover object-top" cacheBust={thumbKey} />
                     <CardContent className="p-4 space-y-2">
@@ -502,7 +516,7 @@ export default function PitchesPage() {
                       </div>
                     </CardContent>
                   </Card>
-                </Link>
+                </div>
               ))}
             </div>
           ) : (
@@ -525,28 +539,40 @@ export default function PitchesPage() {
                       <span className="font-medium truncate">{pitch.title}</span>
                       <Badge
                         variant={pitch.isPublished ? 'default' : 'secondary'}
-                        className="shrink-0 text-xs"
+                        className="hidden shrink-0 text-xs sm:inline-flex"
                       >
                         {pitch.isPublished ? 'Live' : 'Draft'}
                       </Badge>
                       {pitch.fileType && (
-                        <Badge variant="outline" className="shrink-0 text-xs">
+                        <Badge variant="outline" className="hidden shrink-0 text-xs sm:inline-flex">
                           {pitch.fileType.toUpperCase()}
                         </Badge>
                       )}
                     </div>
+                    {/* Mobile meta line — desktop shows the badge + views/date on the right instead */}
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground sm:hidden">
+                      <Badge
+                        variant={pitch.isPublished ? 'default' : 'secondary'}
+                        className="h-4 shrink-0 px-1.5 py-0 text-[10px]"
+                      >
+                        {pitch.isPublished ? 'Live' : 'Draft'}
+                      </Badge>
+                      <EyeIcon className="h-3 w-3 shrink-0" />
+                      {pitch.totalViews}
+                      <span className="truncate">· {formatDistanceToNow(new Date(pitch.createdAt * 1000), { addSuffix: true })}</span>
+                    </div>
                     {pitch.description && (
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      <p className="hidden text-xs text-muted-foreground truncate mt-0.5 sm:block">
                         {pitch.description}
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
+                  <div className="hidden items-center gap-3 text-xs text-muted-foreground shrink-0 sm:flex">
                     <span className="flex items-center gap-1">
                       <EyeIcon className="h-3 w-3" />
                       {pitch.totalViews}
                     </span>
-                    <span className="hidden sm:inline">
+                    <span>
                       {formatDistanceToNow(new Date(pitch.createdAt * 1000), { addSuffix: true })}
                     </span>
                   </div>
@@ -554,7 +580,7 @@ export default function PitchesPage() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-7 w-7"
+                      className="hidden h-7 w-7 sm:inline-flex"
                       onClick={(e) => { e.stopPropagation(); router.push(`/pitches/${pitch.id}/edit`); }}
                     >
                       <PencilIcon className="h-3.5 w-3.5" />
@@ -562,25 +588,41 @@ export default function PitchesPage() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-7 w-7"
+                      className="hidden h-7 w-7 sm:inline-flex"
                       onClick={(e) => { e.stopPropagation(); window.open(`/preview/${pitch.id}`, '_blank'); }}
                     >
                       <ExternalLinkIcon className="h-3.5 w-3.5" />
                     </Button>
-                    {userRole !== 'viewer' && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            data-testid={`pitch-actions-${pitch.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVerticalIcon className="h-3.5 w-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className={`h-8 w-8 ${userRole === 'viewer' ? 'sm:hidden' : ''}`}
+                          data-testid={`pitch-actions-${pitch.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVerticalIcon className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem
+                          className="gap-2 sm:hidden"
+                          data-testid={`pitch-edit-${pitch.id}`}
+                          onSelect={() => router.push(`/pitches/${pitch.id}/edit`)}
+                        >
+                          <PencilIcon className="h-3.5 w-3.5" />
+                          Rediger
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="gap-2 sm:hidden"
+                          data-testid={`pitch-open-${pitch.id}`}
+                          onSelect={() => window.open(`/preview/${pitch.id}`, '_blank')}
+                        >
+                          <ExternalLinkIcon className="h-3.5 w-3.5" />
+                          Åbn i ny fane
+                        </DropdownMenuItem>
+                        {userRole !== 'viewer' && (
                           <DropdownMenuSub>
                             <DropdownMenuSubTrigger className="gap-2" data-testid="pitch-move-submenu">
                               <FolderInputIcon className="h-3.5 w-3.5" />
@@ -590,9 +632,9 @@ export default function PitchesPage() {
                               {folderMenuItems([pitch.id], pitch.folderId)}
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               ))}

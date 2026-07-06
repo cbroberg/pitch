@@ -238,7 +238,7 @@ function GenerateForm() {
                     onValueChange={setTemplateId}
                     disabled={phase === 'generating'}
                   >
-                    <SelectTrigger id="template">
+                    <SelectTrigger id="template" className="[&>span]:line-clamp-1 [&>span]:text-left">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

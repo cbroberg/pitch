@@ -16,7 +16,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChevronUpIcon, LogOutIcon, SettingsIcon, SunIcon, MoonIcon } from 'lucide-react';
+import { ChevronUpIcon, LogOutIcon, SettingsIcon, SunIcon, MoonIcon, RefreshCwIcon } from 'lucide-react';
+import { forcePwaUpdate } from '@/lib/pwa';
 
 interface NavUserProps {
   user: { name: string; email: string };
@@ -73,6 +74,10 @@ export function NavUser({ user, avatarUrl }: NavUserProps) {
                 <MoonIcon className="mr-2 h-4 w-4" />
               )}
               {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => forcePwaUpdate()} data-testid="nav-update-app">
+              <RefreshCwIcon className="mr-2 h-4 w-4" />
+              Opdater app
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

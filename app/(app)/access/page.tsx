@@ -146,7 +146,7 @@ function TokenRow({
 
   return (
     <Card>
-      <CardContent className="flex items-center justify-between py-3 px-4">
+      <CardContent className="flex flex-col gap-3 py-3 px-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-0.5 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
@@ -183,7 +183,7 @@ function TokenRow({
           </p>
         </div>
         {!tok.isRevoked && (
-          <div className="flex items-center gap-1 shrink-0 ml-2">
+          <div className="flex flex-wrap items-center gap-1 shrink-0 sm:ml-2">
             {!tok.pin && tok.email && (
               <Button
                 size="sm"

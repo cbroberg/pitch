@@ -16,6 +16,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 
 const allNavItems = [
@@ -31,6 +32,7 @@ const allNavItems = [
 
 export function NavMain({ role }: { role: string }) {
   const pathname = usePathname();
+  const { setOpenMobile, isMobile } = useSidebar();
   const navItems = allNavItems.filter((item) => item.roles.includes(role));
 
   return (
@@ -38,7 +40,12 @@ export function NavMain({ role }: { role: string }) {
       {navItems.map((item) => (
         <SidebarMenuItem key={item.url}>
           <SidebarMenuButton asChild isActive={pathname.startsWith(item.url)}>
-            <Link href={item.url}>
+            <Link
+              href={item.url}
+              onClick={() => {
+                if (isMobile) setOpenMobile(false);
+              }}
+            >
               <item.icon />
               <span>{item.title}</span>
             </Link>

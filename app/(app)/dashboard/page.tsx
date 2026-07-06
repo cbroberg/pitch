@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   Card,
@@ -33,6 +34,7 @@ interface Stats {
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     fetch('/api/dashboard/stats')
@@ -119,27 +121,38 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-2">
                 {stats.recentPitches.map((pitch) => (
-                  <Link key={pitch.id} href={`/pitches/${pitch.id}`}>
+                  <div
+                    key={pitch.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => router.push(`/pitches/${pitch.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        router.push(`/pitches/${pitch.id}`);
+                      }
+                    }}
+                    className="cursor-pointer rounded-xl focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
                     <Card className="transition-colors hover:bg-muted/50">
-                      <CardContent className="flex items-center gap-4 py-3 px-4">
+                      <CardContent className="flex items-center gap-3 py-3 px-3 sm:px-4">
                         <PitchThumbnail
                           pitchId={pitch.id}
                           fileType={pitch.fileType}
-                          className="w-24 h-[54px] rounded object-cover"
+                          className="w-16 h-9 sm:w-24 sm:h-[54px] rounded object-cover shrink-0"
                         />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{pitch.title}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
                             {formatDistanceToNow(new Date(pitch.createdAt * 1000), {
                               addSuffix: true,
                             })}
+                            {' · '}
+                            {pitch.totalViews} views
                           </p>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm text-muted-foreground">
-                            {pitch.totalViews} views
-                          </span>
-                          <Badge variant={pitch.isPublished ? 'default' : 'secondary'}>
+                        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                          <Badge variant={pitch.isPublished ? 'default' : 'secondary'} className="hidden sm:inline-flex">
                             {pitch.isPublished ? 'Published' : 'Draft'}
                           </Badge>
                           <Button
@@ -167,7 +180,7 @@ export default function DashboardPage() {
                         </div>
                       </CardContent>
                     </Card>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}

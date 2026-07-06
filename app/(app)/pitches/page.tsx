@@ -273,12 +273,14 @@ export default function PitchesPage() {
   return (
     <TooltipProvider>
     <div>
-      <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4">
+      <header className="sticky top-0 z-10 flex flex-wrap items-center gap-2 border-b bg-background px-3 py-2 sm:h-14 sm:flex-nowrap sm:px-4 sm:py-0">
         <SidebarTrigger className="shrink-0" />
         <h1 className="text-base font-semibold shrink-0">Pitches</h1>
 
+        {/* Search + folder filter — own full-width row on mobile */}
+        <div className="order-last flex w-full items-center gap-2 sm:order-none sm:ml-1 sm:w-auto sm:flex-1 sm:min-w-0">
         {/* Search */}
-        <div className="relative flex-1 min-w-0 max-w-[220px] ml-1">
+        <div className="relative flex-1 min-w-0 sm:max-w-[220px]">
           <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <Input
             ref={searchRef}
@@ -323,6 +325,7 @@ export default function PitchesPage() {
             </SelectContent>
           </Select>
         )}
+        </div>
 
         <div className="ml-auto flex items-center gap-1 shrink-0">
           <div className="flex items-center rounded-md border p-0.5">

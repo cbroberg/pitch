@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { pathToFileURL } from 'url';
 import sharp from 'sharp';
 import { PDFDocument } from 'pdf-lib';
@@ -25,15 +26,23 @@ function resolveHtmlFile(dir: string, entryFile?: string | null): string | null 
   return null;
 }
 
-// Perceptual fingerprint: a downscaled greyscale thumbnail whose raw bytes are
-// stable across the sub-pixel / PNG-encoder noise that made exact hashing mistake
-// a re-captured slide for a new one (the trailing-duplicate-page bug, F020).
+function hash(buf: Buffer): string {
+  return crypto.createHash('sha1').update(buf).digest('hex');
+}
+
+// Perceptual fingerprint: a downscaled greyscale thumbnail. Exact hashing decides
+// "did the deck advance at all?" (any pixel change = yes); the signature is used
+// ONLY to recognise the trailing-duplicate-page bug (F020) — the final slide gets
+// re-captured with sub-pixel/encoder noise, so its bytes differ (exact hash sees a
+// "new" slide) while it is perceptually identical to the slide already kept.
 const SIG_W = 32;
 const SIG_H = 18;
-// Mean per-pixel difference (0..1) below which two screenshots are "the same
-// slide" (the deck did not advance). Calibrated on the real bug: two captures of
-// the same final slide measured 0.000, two genuinely different slides 0.71.
-export const SLIDE_SIMILARITY = 0.02;
+// Mean per-pixel difference (0..1) below which a byte-different re-capture is just
+// jitter of the SAME slide, not a real new slide. Sits safely between measured
+// jitter (~0.00) and the smallest real adjacent-slide gap seen in practice
+// (~0.01). Detection + real-advance still use exact hashing, so a genuinely subtle
+// transition is never merged.
+export const SLIDE_JITTER = 0.006;
 
 export async function slideSignature(png: Buffer): Promise<Uint8Array> {
   const raw = await sharp(png)
@@ -69,29 +78,32 @@ async function captureDeck(page: Page): Promise<Buffer[] | null> {
   await page.waitForTimeout(450);
   const shot1 = await page.screenshot({ type: 'png' });
 
-  const sig0 = await slideSignature(shot0);
-  const sig1 = await slideSignature(shot1);
-
-  // ArrowRight changed nothing → not a deck.
-  if (signatureDistance(sig0, sig1) < SLIDE_SIMILARITY) return null;
+  // ArrowRight changed no pixel → not a deck. (Exact hash: even a subtle first
+  // transition counts as a deck; a perceptual check here would misread a deck
+  // whose first two slides look nearly alike as "not a deck".)
+  if (hash(shot1) === hash(shot0)) return null;
 
   const shots = [shot0, shot1];
-  let lastSig = sig1;
+  let last = hash(shot1);
+  let lastSig = await slideSignature(shot1);
   let stale = 0;
   for (let i = 2; i < MAX_SLIDES; i++) {
     await page.keyboard.press('ArrowRight').catch(() => {});
     await page.waitForTimeout(450);
     const buf = await page.screenshot({ type: 'png' });
+    const h = hash(buf);
     const sig = await slideSignature(buf);
-    if (signatureDistance(sig, lastSig) < SLIDE_SIMILARITY) {
-      // Same slide as the last one we kept → the deck did not advance. Tolerate
-      // one transient no-change (slow transition / dropped key); only two in a
-      // row means we've truly reached the last slide.
+    // No real advance when the frame is byte-identical to the last kept slide, OR
+    // byte-different but perceptually identical to it (the final-slide re-capture
+    // jitter that used to leak in as a duplicate page). Tolerate one transient
+    // no-change; two in a row means we've reached the last slide.
+    if (h === last || signatureDistance(sig, lastSig) < SLIDE_JITTER) {
       if (++stale >= 2) break;
       continue;
     }
     stale = 0;
     shots.push(buf);
+    last = h;
     lastSig = sig;
   }
   return shots;
@@ -119,17 +131,15 @@ async function captureScroll(page: Page): Promise<Buffer[] | null> {
   if (geo.fullViewport < 2 || geo.scrollHeight < SLIDE_H * 1.3) return null;
 
   const shots: Buffer[] = [];
-  let lastSig: Uint8Array | null = null;
+  const seen = new Set<string>();
   for (let y = 0; y < geo.scrollHeight && shots.length < MAX_SLIDES; y += SLIDE_H) {
     await page.evaluate((yy) => window.scrollTo(0, yy), y);
     await page.waitForTimeout(250);
     const buf = await page.screenshot({ type: 'png' });
-    const sig = await slideSignature(buf);
-    // Skip a viewport that is perceptually identical to the last one kept (e.g. an
-    // end-of-scroll overshoot), so it cannot append a duplicate page.
-    if (!lastSig || signatureDistance(sig, lastSig) >= SLIDE_SIMILARITY) {
+    const h = hash(buf);
+    if (!seen.has(h)) {
+      seen.add(h);
       shots.push(buf);
-      lastSig = sig;
     }
   }
   return shots.length >= 2 ? shots : null;

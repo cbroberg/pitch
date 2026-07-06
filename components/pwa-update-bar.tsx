@@ -1,81 +1,28 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { ArrowUpIcon } from 'lucide-react';
+import { usePwaUpdate } from '@broberg/pwa/react';
 
-// Fixed top card shown when a newer service worker is waiting to activate.
-// PWAs have no pull-to-refresh; this is how the installed app updates itself —
-// tap Update instead of deleting + re-adding the home-screen icon. (F021)
+// Fixed top card shown when a newer service worker is waiting. Detection +
+// SW handshake come from the shared @broberg/pwa core (the fleet-hardened
+// registration.waiting + updatefound + focus/visibility poll + SKIP_WAITING →
+// controllerchange → one guarded reload). We keep only our styled card. (F021)
 //
-// Mechanism matches the broberg.ai fleet (fds + cardmem): pure SW lifecycle,
-// human-gated. A new deploy ships a byte-changed sw.js (stamped at build); the
-// browser installs it into "waiting"; SKIP_WAITING → controllerchange → one
-// clean reload (no race — the new SW has cached before it claims). First install
-// never shows the banner (guarded on an existing controller).
+// register:false → sw-register.tsx already registers /sw.js app-wide, so the
+// hook attaches to the existing registration instead of double-registering.
+// The per-deploy byte-stamp of sw.js (scripts/stamp-sw.cjs) stays our job — it
+// is what makes reg.update() see a new worker.
 export function PwaUpdateBar() {
-  const [waiting, setWaiting] = useState<ServiceWorker | null>(null);
+  const { updateReady, applyUpdate } = usePwaUpdate({
+    register: false,
+    pollIntervalMs: 120_000, // 2 min — a foregrounded tab never fires visibilitychange
+    disabled: process.env.NODE_ENV !== 'production',
+  });
   const [dismissed, setDismissed] = useState(false);
   const [busy, setBusy] = useState(false);
-  const updatingRef = useRef(false);
 
-  useEffect(() => {
-    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-
-    // A waiting/installed worker is only an UPDATE (not a first install) when the
-    // page already has a controller.
-    function offerIfControlled(sw: ServiceWorker | null | undefined) {
-      if (sw && navigator.serviceWorker.controller) setWaiting(sw);
-    }
-
-    let reg: ServiceWorkerRegistration | null = null;
-    (async () => {
-      reg = (await navigator.serviceWorker.getRegistration()) ?? null;
-      if (!reg) return;
-      // (a) Already waiting — installed while the app was closed (iOS standalone
-      // often doesn't fire updatefound on resume, so check at mount).
-      offerIfControlled(reg.waiting);
-      // (b) A new worker starts installing while the app is open.
-      reg.addEventListener('updatefound', () => {
-        const installing = reg!.installing;
-        if (!installing) return;
-        installing.addEventListener('statechange', () => {
-          if (installing.state === 'installed') offerIfControlled(reg!.waiting ?? installing);
-        });
-      });
-    })();
-
-    // The new SW taking control → reload once (only after a user-triggered update).
-    const onControllerChange = () => {
-      if (updatingRef.current) window.location.reload();
-    };
-    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
-
-    // Re-check for a new sw.js on an interval, on focus, and on visibility. Focus
-    // matters: a constantly-foregrounded tab never fires visibilitychange.
-    const check = () => reg?.update().catch(() => {});
-    const iv = setInterval(check, 120_000);
-    const onVis = () => { if (document.visibilityState === 'visible') check(); };
-    window.addEventListener('focus', check);
-    document.addEventListener('visibilitychange', onVis);
-
-    return () => {
-      clearInterval(iv);
-      window.removeEventListener('focus', check);
-      document.removeEventListener('visibilitychange', onVis);
-      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
-    };
-  }, []);
-
-  const onUpdate = useCallback(() => {
-    if (!waiting) return;
-    setBusy(true);
-    updatingRef.current = true;
-    waiting.postMessage({ type: 'SKIP_WAITING' });
-    // Backstop: if controllerchange doesn't fire (some iOS cases), reload anyway.
-    setTimeout(() => window.location.reload(), 1500);
-  }, [waiting]);
-
-  if (!waiting || dismissed) return null;
+  if (!updateReady || dismissed) return null;
 
   return (
     <div
@@ -106,7 +53,7 @@ export function PwaUpdateBar() {
           </button>
           <button
             type="button"
-            onClick={onUpdate}
+            onClick={() => { setBusy(true); applyUpdate(); }}
             disabled={busy}
             data-testid="pwa-update-button"
             className="rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground shadow transition active:scale-95 disabled:opacity-70"

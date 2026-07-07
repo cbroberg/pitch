@@ -50,20 +50,28 @@ export default function DashboardPage() {
       </header>
       <main className="flex-1 p-4 md:p-6">
         <div className="max-w-5xl space-y-6">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Pitches</CardTitle>
-                <PresentationIcon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {stats ? (
-                  <div className="text-2xl font-bold">{stats.totalPitches}</div>
-                ) : (
-                  <Skeleton className="h-8 w-16" />
-                )}
-              </CardContent>
-            </Card>
+          {/* Stat cards: no actionable value on a phone — desktop only. On desktop
+              Total Pitches links to the pitches list. */}
+          <div className="hidden gap-4 sm:grid sm:grid-cols-3">
+            <Link
+              href="/pitches"
+              data-testid="dashboard-total-pitches-link"
+              className="rounded-xl focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <Card className="h-full cursor-pointer transition-colors hover:border-primary/40 hover:bg-muted/50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Pitches</CardTitle>
+                  <PresentationIcon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  {stats ? (
+                    <div className="text-2xl font-bold">{stats.totalPitches}</div>
+                  ) : (
+                    <Skeleton className="h-8 w-16" />
+                  )}
+                </CardContent>
+              </Card>
+            </Link>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Views</CardTitle>

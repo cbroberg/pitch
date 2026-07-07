@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, MailIcon, SendIcon, ShieldIcon, FolderIcon, MoreVerticalIcon, FolderInputIcon, CheckIcon } from 'lucide-react';
+import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, MailIcon, SendIcon, ShieldIcon, FolderIcon, MoreVerticalIcon, FolderInputIcon, CheckIcon, TrashIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PitchThumbnail } from '@/components/pitch-thumbnail';
 import { formatDistanceToNow } from 'date-fns';
@@ -38,11 +38,22 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { FolderTree } from '@/lib/db/queries/folders';
 
 type ViewMode = 'grid' | 'list';
@@ -74,6 +85,27 @@ export default function PitchesPage() {
   const [sendingInvite, setSendingInvite] = useState(false);
   const [folders, setFolders] = useState<FlatFolder[]>([]);
   const [folderFilter, setFolderFilter] = useState<string>('all');
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
+
+  async function deletePitch() {
+    if (!pendingDelete) return;
+    const { id } = pendingDelete;
+    try {
+      const res = await fetch(`/api/pitches/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('failed');
+      setPitches((prev) => (prev ? prev.filter((p) => p.id !== id) : prev));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      toast.success('Pitch slettet');
+    } catch {
+      toast.error('Kunne ikke slette pitch');
+    } finally {
+      setPendingDelete(null);
+    }
+  }
 
   function toggleSelect(id: string, e: React.MouseEvent) {
     e.preventDefault();
@@ -509,6 +541,15 @@ export default function PitchesPage() {
                                     {folderMenuItems([pitch.id], pitch.folderId)}
                                   </DropdownMenuSubContent>
                                 </DropdownMenuSub>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="gap-2 text-destructive focus:text-destructive"
+                                  data-testid={`pitch-delete-${pitch.id}`}
+                                  onSelect={() => setPendingDelete({ id: pitch.id, title: pitch.title })}
+                                >
+                                  <TrashIcon className="h-3.5 w-3.5" />
+                                  Slet pitch
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}
@@ -623,15 +664,26 @@ export default function PitchesPage() {
                           Åbn i ny fane
                         </DropdownMenuItem>
                         {userRole !== 'viewer' && (
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger className="gap-2" data-testid="pitch-move-submenu">
-                              <FolderInputIcon className="h-3.5 w-3.5" />
-                              Flyt til mappe
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent>
-                              {folderMenuItems([pitch.id], pitch.folderId)}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
+                          <>
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger className="gap-2" data-testid="pitch-move-submenu">
+                                <FolderInputIcon className="h-3.5 w-3.5" />
+                                Flyt til mappe
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                {folderMenuItems([pitch.id], pitch.folderId)}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="gap-2 text-destructive focus:text-destructive"
+                              data-testid={`pitch-delete-${pitch.id}`}
+                              onSelect={() => setPendingDelete({ id: pitch.id, title: pitch.title })}
+                            >
+                              <TrashIcon className="h-3.5 w-3.5" />
+                              Slet pitch
+                            </DropdownMenuItem>
+                          </>
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -750,6 +802,29 @@ export default function PitchesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation — custom dialog (never a native confirm) */}
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => { if (!o) setPendingDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Slet pitch?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Dette sletter &ldquo;{pendingDelete?.title}&rdquo; permanent — inkl. alle
+              filer, tokens og visningshistorik. Kan ikke fortrydes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuller</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deletePitch}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="confirm-delete-pitch"
+            >
+              Slet pitch
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
     </TooltipProvider>

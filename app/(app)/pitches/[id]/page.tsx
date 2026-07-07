@@ -46,6 +46,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import {
   ArrowLeftIcon,
@@ -66,6 +73,8 @@ import {
   RefreshCwIcon,
   DownloadIcon,
   MoreVerticalIcon,
+  ChevronDownIcon,
+  WrenchIcon,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -454,7 +463,9 @@ export default function PitchDetailPage() {
           {pitch.isPublished ? 'Live' : 'Draft'}
         </Badge>
 
-        {/* Desktop toolbar — collapses into a bottom sheet on mobile (below) */}
+        {/* Desktop toolbar — Preview stays a button; every other action lives in
+            one "Tools" menu so the bar never overflows. Mobile uses the bottom
+            sheet below. */}
         <div className="ml-auto hidden items-center gap-2 sm:flex">
           <Button asChild variant="outline" size="sm">
             <a href={`/preview/${id}`} target="_blank" rel="noopener noreferrer">
@@ -463,60 +474,66 @@ export default function PitchDetailPage() {
             </a>
           </Button>
           {userRole !== 'viewer' && (
-            <>
-              {pitch.fileType === 'html' && (
-                <>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/pitches/${id}/visual`}>
-                      <MousePointer2Icon className="mr-1 h-3.5 w-3.5" />
-                      Visual Edit
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/pitches/${id}/ai`}>
-                      <SparklesIcon className="mr-1 h-3.5 w-3.5" />
-                      Edit med AI
-                    </Link>
-                  </Button>
-                </>
-              )}
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/pitches/${id}/stats`}>
-                  <BarChart3Icon className="mr-1 h-3.5 w-3.5" />
-                  Stats
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={downloadPdf}
-                disabled={downloadingPdf}
-                data-testid="pitch-download-pdf"
-              >
-                <DownloadIcon
-                  className={cn('mr-1 h-3.5 w-3.5', downloadingPdf && 'animate-pulse')}
-                />
-                {downloadingPdf ? 'Genererer PDF…' : 'Download PDF'}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setTemplateName(pitch.title);
-                  setTemplateDialogOpen(true);
-                }}
-              >
-                <LayoutTemplateIcon className="mr-1 h-3.5 w-3.5" />
-                Save as Template
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setDeleteOpen(true)}
-              >
-                <TrashIcon className="h-3.5 w-3.5" />
-              </Button>
-            </>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" data-testid="pitch-tools-menu">
+                  <WrenchIcon className="mr-1 h-3.5 w-3.5" />
+                  Tools
+                  <ChevronDownIcon className="ml-1 h-3.5 w-3.5 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                {pitch.fileType === 'html' && (
+                  <>
+                    <DropdownMenuItem asChild data-testid="pitch-tool-visual">
+                      <Link href={`/pitches/${id}/visual`}>
+                        <MousePointer2Icon className="h-4 w-4" />
+                        Visual Edit
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild data-testid="pitch-tool-ai">
+                      <Link href={`/pitches/${id}/ai`}>
+                        <SparklesIcon className="h-4 w-4" />
+                        Edit med AI
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuItem asChild data-testid="pitch-tool-stats">
+                  <Link href={`/pitches/${id}/stats`}>
+                    <BarChart3Icon className="h-4 w-4" />
+                    Stats
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => { e.preventDefault(); downloadPdf(); }}
+                  disabled={downloadingPdf}
+                  data-testid="pitch-tool-pdf"
+                >
+                  <DownloadIcon className={cn('h-4 w-4', downloadingPdf && 'animate-pulse')} />
+                  {downloadingPdf ? 'Genererer PDF…' : 'Download PDF'}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    setTemplateName(pitch.title);
+                    setTemplateDialogOpen(true);
+                  }}
+                  data-testid="pitch-tool-template"
+                >
+                  <LayoutTemplateIcon className="h-4 w-4" />
+                  Save as Template
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={() => setDeleteOpen(true)}
+                  className="text-destructive focus:text-destructive"
+                  data-testid="pitch-tool-delete"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                  Slet pitch
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
 

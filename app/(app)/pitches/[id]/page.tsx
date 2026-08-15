@@ -220,7 +220,7 @@ export default function PitchDetailPage() {
    * Tags save the moment a chip is added or removed — never via "Save Changes".
    * A chip LOOKS committed, and the Save button sits far below the thumbnail,
    * off-screen: folding tags into that flow silently threw away tags the owner
-   * had every reason to believe were stored. (F022.6)
+   * had every reason to believe were stored. (F022)
    */
   async function saveTags(next: string[]) {
     setTags(next); // optimistic — the chip stays put while the request runs

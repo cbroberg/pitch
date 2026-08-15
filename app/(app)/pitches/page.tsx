@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, MailIcon, SendIcon, ShieldIcon, FolderIcon, MoreVerticalIcon, FolderInputIcon, CheckIcon, TrashIcon } from 'lucide-react';
+import { PlusIcon, PresentationIcon, EyeIcon, ExternalLinkIcon, PencilIcon, LayoutGridIcon, ListIcon, ImageIcon, SearchIcon, XIcon, MailIcon, SendIcon, ShieldIcon, FolderIcon, MoreVerticalIcon, FolderInputIcon, CheckIcon, TrashIcon, TagIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PitchThumbnail } from '@/components/pitch-thumbnail';
 import { formatDistanceToNow } from 'date-fns';
@@ -60,6 +60,11 @@ type ViewMode = 'grid' | 'list';
 
 type FlatFolder = { id: string; name: string; depth: number };
 
+/** The list API decorates each pitch with its tag names. (F022.3) */
+type PitchWithTags = Pitch & { tags?: string[] };
+
+type TagCount = { id: string; name: string; count: number };
+
 function flattenFolders(tree: FolderTree[], depth = 0): FlatFolder[] {
   return tree.flatMap((f) => [
     { id: f.id, name: f.name, depth },
@@ -69,7 +74,7 @@ function flattenFolders(tree: FolderTree[], depth = 0): FlatFolder[] {
 
 export default function PitchesPage() {
   const router = useRouter();
-  const [pitches, setPitches] = useState<Pitch[] | null>(null);
+  const [pitches, setPitches] = useState<PitchWithTags[] | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [thumbKey, setThumbKey] = useState(0);
   const [query, setQuery] = useState('');
@@ -85,7 +90,12 @@ export default function PitchesPage() {
   const [sendingInvite, setSendingInvite] = useState(false);
   const [folders, setFolders] = useState<FlatFolder[]>([]);
   const [folderFilter, setFolderFilter] = useState<string>('all');
+  const [tagFilter, setTagFilter] = useState<string>('all');
+  const [allTags, setAllTags] = useState<TagCount[]>([]);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
+  const [bulkTagOpen, setBulkTagOpen] = useState(false);
+  const [bulkTagName, setBulkTagName] = useState('');
+  const [applyingTag, setApplyingTag] = useState(false);
 
   async function deletePitch() {
     if (!pendingDelete) return;
@@ -104,6 +114,33 @@ export default function PitchesPage() {
       toast.error('Kunne ikke slette pitch');
     } finally {
       setPendingDelete(null);
+    }
+  }
+
+  /** Add one tag to every selected pitch. Additive — their existing tags stay. (F022.4) */
+  async function applyBulkTag() {
+    const tag = bulkTagName.trim();
+    if (!tag || selectedIds.size === 0) return;
+    setApplyingTag(true);
+    const count = selectedIds.size;
+    try {
+      const res = await fetch('/api/tags/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pitchIds: Array.from(selectedIds), tag }),
+      });
+      if (!res.ok) throw new Error('failed');
+      const { tag: applied } = await res.json();
+      toast.success(`${count} pitch${count === 1 ? '' : 'es'} tagget med "${applied}"`);
+      setBulkTagOpen(false);
+      setBulkTagName('');
+      clearSelection();
+      loadPitches();
+      loadTags();
+    } catch {
+      toast.error('Kunne ikke sætte tag');
+    } finally {
+      setApplyingTag(false);
     }
   }
 
@@ -180,6 +217,32 @@ export default function PitchesPage() {
     );
   }
 
+  /** Clickable tag chips shown on a card/row. Clicking one filters the list to
+   *  that tag rather than opening the pitch. (F022.3) */
+  function renderTags(tags: string[] | undefined, prefix: string) {
+    if (!tags || tags.length === 0) return null;
+    return (
+      <div className="flex flex-wrap items-center gap-1">
+        {tags.map((t) => (
+          <button
+            key={t}
+            type="button"
+            data-testid={`${prefix}-tag-${t.replace(/[^a-z0-9]+/gi, '-')}`}
+            title={`Filtrér på ${t}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleTagChange(t);
+            }}
+            className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-medium leading-4 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-foreground active:scale-95"
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
   async function sendBatchInvite() {
     if (!inviteEmail || selectedIds.size === 0) return;
     setSendingInvite(true);
@@ -235,17 +298,35 @@ export default function PitchesPage() {
     fetch('/api/settings').then(r => r.ok ? r.json() : null).then(d => { if (d?.role) setUserRole(d.role); });
   }, []);
 
-  useEffect(() => {
+  function loadPitches() {
     fetch('/api/pitches')
       .then((r) => r.json())
       .then(setPitches);
-  }, []);
+  }
+
+  useEffect(loadPitches, []);
 
   useEffect(() => {
     fetch('/api/folders')
       .then((r) => (r.ok ? r.json() : []))
       .then((tree: FolderTree[]) => setFolders(flattenFolders(tree)))
       .catch(() => {});
+  }, []);
+
+  function loadTags() {
+    fetch('/api/tags')
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setAllTags)
+      .catch(() => {});
+  }
+
+  useEffect(loadTags, []);
+
+  // Restore an active tag filter from the URL (?tag=…) so a filtered view can
+  // be bookmarked and shared. (F022.3)
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tag');
+    if (t) setTagFilter(t);
   }, []);
 
   // Restore an active folder filter from the URL (?folder=<id>) — e.g. when
@@ -277,32 +358,51 @@ export default function PitchesPage() {
     localStorage.setItem('pitches-view-mode', mode);
   }
 
+  /** Keep folder + tag both represented in the URL so a filtered view survives
+   *  a reload and can be shared. (F022.3) */
+  function syncUrl(folder: string, tag: string) {
+    const params = new URLSearchParams();
+    if (folder !== 'all') params.set('folder', folder);
+    if (tag !== 'all') params.set('tag', tag);
+    const qs = params.toString();
+    window.history.replaceState(null, '', qs ? `/pitches?${qs}` : '/pitches');
+  }
+
   function handleFolderChange(value: string) {
     setFolderFilter(value);
-    const url = value === 'all' ? '/pitches' : `/pitches?folder=${value}`;
-    window.history.replaceState(null, '', url);
+    syncUrl(value, tagFilter);
+  }
+
+  function handleTagChange(value: string) {
+    setTagFilter(value);
+    syncUrl(folderFilter, value);
   }
 
   function clearFilters() {
     setQuery('');
-    handleFolderChange('all');
+    setFolderFilter('all');
+    setTagFilter('all');
+    syncUrl('all', 'all');
   }
 
   const filtered = pitches
     ? pitches.filter((p) => {
         if (folderFilter !== 'all' && p.folderId !== folderFilter) return false;
+        if (tagFilter !== 'all' && !(p.tags ?? []).includes(tagFilter)) return false;
         if (query.trim()) {
           const q = query.toLowerCase();
           return (
             p.title.toLowerCase().includes(q) ||
-            (p.description ?? '').toLowerCase().includes(q)
+            (p.description ?? '').toLowerCase().includes(q) ||
+            (p.tags ?? []).some((t) => t.includes(q))
           );
         }
         return true;
       })
     : null;
 
-  const hasActiveFilter = query.trim() !== '' || folderFilter !== 'all';
+  const hasActiveFilter =
+    query.trim() !== '' || folderFilter !== 'all' || tagFilter !== 'all';
 
   return (
     <TooltipProvider>
@@ -354,6 +454,28 @@ export default function PitchesPage() {
                 <SelectItem key={f.id} value={f.id}>
                   {f.depth > 0 ? '— '.repeat(f.depth) : ''}
                   {f.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {/* Tag filter — the cross-folder axis (F022.3) */}
+        {allTags.length > 0 && (
+          <Select value={tagFilter} onValueChange={handleTagChange}>
+            <SelectTrigger
+              data-testid="pitches-tag-filter"
+              aria-label="Filtrér efter tag"
+              className="h-8 w-full gap-1.5 text-sm sm:w-auto sm:min-w-[130px] sm:max-w-[200px] sm:shrink-0"
+            >
+              <TagIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle tags</SelectItem>
+              {allTags.map((t) => (
+                <SelectItem key={t.id} value={t.name}>
+                  {t.name} ({t.count})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -430,7 +552,9 @@ export default function PitchesPage() {
                     <p className="text-muted-foreground mb-4">
                       {query
                         ? <>Ingen pitches matcher &ldquo;{query}&rdquo;</>
-                        : 'Ingen pitches i den valgte mappe'}
+                        : tagFilter !== 'all'
+                          ? <>Ingen pitches med tagget &ldquo;{tagFilter}&rdquo;</>
+                          : 'Ingen pitches i den valgte mappe'}
                     </p>
                     <Button variant="outline" onClick={clearFilters}>Ryd filtre</Button>
                   </>
@@ -478,6 +602,7 @@ export default function PitchesPage() {
                           {pitch.description}
                         </p>
                       )}
+                      {renderTags(pitch.tags, `grid-${pitch.id}`)}
                       <div className="flex items-center justify-between pt-1">
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
@@ -607,6 +732,9 @@ export default function PitchesPage() {
                         {pitch.description}
                       </p>
                     )}
+                    {pitch.tags && pitch.tags.length > 0 && (
+                      <div className="mt-1">{renderTags(pitch.tags, `list-${pitch.id}`)}</div>
+                    )}
                   </div>
                   <div className="hidden items-center gap-3 text-xs text-muted-foreground shrink-0 sm:flex">
                     <span className="flex items-center gap-1">
@@ -703,6 +831,18 @@ export default function PitchesPage() {
             <MailIcon className="h-3.5 w-3.5" />
             Send invitation
           </Button>
+          {userRole !== 'viewer' && (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 gap-1.5"
+              data-testid="pitches-batch-tag"
+              onClick={() => setBulkTagOpen(true)}
+            >
+              <TagIcon className="h-3.5 w-3.5" />
+              Sæt tag
+            </Button>
+          )}
           {folders.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -798,6 +938,62 @@ export default function PitchesPage() {
             >
               <SendIcon className="h-3.5 w-3.5" />
               {sendingInvite ? 'Sender…' : `Send til ${selectedIds.size} præsentation${selectedIds.size === 1 ? '' : 'er'}`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk tag dialog — pick an existing tag or type a new one (F022.4) */}
+      <Dialog open={bulkTagOpen} onOpenChange={(o) => { setBulkTagOpen(o); if (!o) setBulkTagName(''); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TagIcon className="h-4 w-4" />
+              Sæt tag på {selectedIds.size} pitch{selectedIds.size === 1 ? '' : 'es'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label>Tag</Label>
+              <Input
+                autoFocus
+                value={bulkTagName}
+                onChange={(e) => setBulkTagName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') applyBulkTag(); }}
+                placeholder="fx shop, ai, demo…"
+                data-testid="bulk-tag-input"
+              />
+            </div>
+            {allTags.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Eksisterende tags</Label>
+                <div className="flex flex-wrap gap-1">
+                  {allTags.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      data-testid={`bulk-tag-pick-${t.name.replace(/[^a-z0-9]+/gi, '-')}`}
+                      onClick={() => setBulkTagName(t.name)}
+                      className={`rounded-full border px-2 py-0.5 text-xs transition-colors active:scale-95 ${
+                        bulkTagName === t.name
+                          ? 'border-primary bg-primary/15 text-foreground'
+                          : 'border-border bg-muted/60 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                      }`}
+                    >
+                      {t.name} ({t.count})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Button
+              className="w-full gap-2"
+              disabled={!bulkTagName.trim() || applyingTag}
+              onClick={applyBulkTag}
+              data-testid="bulk-tag-apply"
+            >
+              <TagIcon className="h-3.5 w-3.5" />
+              {applyingTag ? 'Sætter tag…' : `Sæt tag på ${selectedIds.size}`}
             </Button>
           </div>
         </DialogContent>

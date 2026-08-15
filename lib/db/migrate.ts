@@ -168,6 +168,22 @@ export function runMigrations() {
     db.exec(`ALTER TABLE user_invitations ADD COLUMN folder_ids TEXT NOT NULL DEFAULT '[]'`);
   }
 
+  // tags + pitch_tags (F022) — the cross-cutting axis alongside folders.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tags (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS pitch_tags (
+      pitch_id TEXT NOT NULL REFERENCES pitches(id) ON DELETE CASCADE,
+      tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+      PRIMARY KEY (pitch_id, tag_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_pitch_tags_tag_id ON pitch_tags(tag_id);
+    CREATE INDEX IF NOT EXISTS idx_pitch_tags_pitch_id ON pitch_tags(pitch_id);
+  `);
+
   db.close();
   console.log('[pitch-vault] Migrations completed');
 }

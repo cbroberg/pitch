@@ -3,6 +3,7 @@ import { validateApiKey } from '@/lib/auth/api-key';
 import { createPitch, getPitchBySlug, updatePitch } from '@/lib/db/queries/pitches';
 import { savePitchFile, detectFileType, listPitchFiles } from '@/lib/upload';
 import { generateUniqueSlug, toSlug } from '@/lib/slug';
+import { setPitchTags, getTagsForPitch } from '@/lib/db/queries/tags';
 
 export async function POST(request: NextRequest) {
   const userId = await validateApiKey(request);
@@ -17,6 +18,9 @@ export async function POST(request: NextRequest) {
     const folderId = formData.get('folderId') as string | null;
     const slug = formData.get('slug') as string | null;
     const isPublished = formData.get('isPublished') === 'true';
+    // Optional comma-separated tags so a session can categorise at upload time
+    // instead of the owner re-tagging by hand afterwards. (F022.5)
+    const tagsField = formData.get('tags') as string | null;
     const files = formData.getAll('files') as File[];
 
     if (!title) {
@@ -58,9 +62,15 @@ export async function POST(request: NextRequest) {
       } : {}),
     });
 
+    // Only touch tags when the field is present, so a push that omits it keeps
+    // whatever the owner has curated in the UI.
+    if (tagsField !== null) {
+      setPitchTags(pitch.id, tagsField.split(','));
+    }
+
     const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
     return NextResponse.json({
-      pitch: updated,
+      pitch: { ...updated, tags: getTagsForPitch(pitch.id) },
       shareUrl: `${baseUrl}/view/`,
     });
   } catch (error) {

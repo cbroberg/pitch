@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { EmailTagInput } from '@/components/ui/email-tag-input';
+import { TagInput } from '@/components/ui/tag-input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -101,6 +102,8 @@ export default function PitchDetailPage() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [isPublished, setIsPublished] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   const [userRole, setUserRole] = useState<string>('super_admin');
 
@@ -172,6 +175,15 @@ export default function PitchDetailPage() {
     }
   }
 
+  async function loadTags() {
+    const [mine, all] = await Promise.all([
+      fetch(`/api/pitches/${id}/tags`).then((r) => (r.ok ? r.json() : { tags: [] })),
+      fetch('/api/tags').then((r) => (r.ok ? r.json() : [])),
+    ]);
+    setTags(mine.tags ?? []);
+    setAllTags((all as { name: string }[]).map((t) => t.name));
+  }
+
   async function loadTokens() {
     try {
       const res = await fetch(`/api/pitches/${id}/tokens`, { cache: 'no-store' });
@@ -191,6 +203,7 @@ export default function PitchDetailPage() {
   useEffect(() => {
     load();
     loadTokens();
+    loadTags();
     fetch('/api/folders')
       .then((r) => r.ok ? r.json() : [])
       .then(setFolders)
@@ -204,14 +217,29 @@ export default function PitchDetailPage() {
   async function handleSave() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/pitches/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description: description || null, isPublished, folderId: folderId === 'none' ? null : folderId }),
-      });
-      if (!res.ok) throw new Error('Failed');
+      const [res, tagRes] = await Promise.all([
+        fetch(`/api/pitches/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description: description || null, isPublished, folderId: folderId === 'none' ? null : folderId }),
+        }),
+        fetch(`/api/pitches/${id}/tags`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tags }),
+        }),
+      ]);
+      if (!res.ok || !tagRes.ok) throw new Error('Failed');
       const updated: Pitch = await res.json();
+      const savedTags: { tags: string[] } = await tagRes.json();
       setPitch(updated);
+      setTags(savedTags.tags);
+      // Refresh the suggestion pool so a tag just invented here is offered on
+      // the next pitch too.
+      fetch('/api/tags')
+        .then((r) => (r.ok ? r.json() : []))
+        .then((all: { name: string }[]) => setAllTags(all.map((t) => t.name)))
+        .catch(() => {});
       setDirty(false);
       toast.success('Saved');
     } catch {
@@ -697,6 +725,21 @@ export default function PitchDetailPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {userRole !== 'viewer' && (
+                    <div className="space-y-2">
+                      <Label>Tags</Label>
+                      <TagInput
+                        testId="pitch-tags"
+                        value={tags}
+                        suggestions={allTags}
+                        placeholder="fx shop, ai, demo…"
+                        onChange={(next) => { setTags(next); setDirty(true); }}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Bruges til at finde pitches på tværs af mapper. Enter eller komma tilføjer.
+                      </p>
+                    </div>
+                  )}
                   <div className="flex items-center gap-3">
                     <Label>Published</Label>
                     <button
@@ -747,7 +790,7 @@ export default function PitchDetailPage() {
                     </div>
                   )}
                   {dirty && (
-                    <Button onClick={handleSave} disabled={loading}>
+                    <Button onClick={handleSave} disabled={loading} data-testid="pitch-save">
                       {loading ? 'Saving…' : 'Save Changes'}
                     </Button>
                   )}

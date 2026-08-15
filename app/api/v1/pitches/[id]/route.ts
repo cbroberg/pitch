@@ -3,6 +3,7 @@ import { validateApiKey } from '@/lib/auth/api-key';
 import { getPitchById } from '@/lib/db/queries/pitches';
 import { getFolderById } from '@/lib/db/queries/folders';
 import { listPitchFiles } from '@/lib/upload';
+import { getTagsForPitch } from '@/lib/db/queries/tags';
 
 export async function GET(
   request: NextRequest,
@@ -31,6 +32,7 @@ export async function GET(
     folderId: pitch.folderId,
     fileType: pitch.fileType,
     entryFile: pitch.entryFile,
+    tags: getTagsForPitch(id),
     isPublished: pitch.isPublished,
     totalViews: pitch.totalViews,
     uniqueViews: pitch.uniqueViews,

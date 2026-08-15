@@ -4,21 +4,28 @@ import { createPitch, getAllPitches } from '@/lib/db/queries/pitches';
 import { savePitchFile, detectFileType, listPitchFiles } from '@/lib/upload';
 import { generateUniqueSlug } from '@/lib/slug';
 import { getUserFolderIds } from '@/lib/db/queries/user-folder-access';
+import { getTagsForPitches } from '@/lib/db/queries/tags';
 
 export async function GET() {
   try {
     const user = await getUser();
     const all = getAllPitches();
 
-    if (user.role === 'super_admin') {
-      return NextResponse.json(all);
-    }
+    const visible =
+      user.role === 'super_admin'
+        ? all
+        : (() => {
+            const allowedFolderIds = new Set(getUserFolderIds(user.id));
+            return all.filter(
+              (p) => p.folderId !== null && allowedFolderIds.has(p.folderId),
+            );
+          })();
 
-    const allowedFolderIds = new Set(getUserFolderIds(user.id));
-    const filtered = all.filter(
-      (p) => p.folderId !== null && allowedFolderIds.has(p.folderId),
+    // One query for every row's tags — the list renders them all. (F022)
+    const tagsByPitch = getTagsForPitches(visible.map((p) => p.id));
+    return NextResponse.json(
+      visible.map((p) => ({ ...p, tags: tagsByPitch[p.id] ?? [] })),
     );
-    return NextResponse.json(filtered);
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

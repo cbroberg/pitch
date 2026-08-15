@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
 import { nanoid } from 'nanoid';
 
 const now = () => Math.floor(Date.now() / 1000);
@@ -133,6 +133,29 @@ export const webauthnCredentials = sqliteTable('webauthn_credentials', {
   lastUsedAt: integer('last_used_at'),
 });
 
+// Tags are the cross-cutting axis folders can't express: a pitch lives in one
+// customer folder but can be about `shop` + `ai` + `demo` at once. (F022)
+export const tags = sqliteTable('tags', {
+  id: text('id').primaryKey().$defaultFn(() => nanoid()),
+  // Stored normalised (trimmed, whitespace-collapsed, lowercased) so `Shop`,
+  // `shop ` and `SHOP` are one tag rather than three.
+  name: text('name').notNull().unique(),
+  createdAt: integer('created_at').notNull().$defaultFn(now),
+});
+
+export const pitchTags = sqliteTable(
+  'pitch_tags',
+  {
+    pitchId: text('pitch_id')
+      .notNull()
+      .references(() => pitches.id, { onDelete: 'cascade' }),
+    tagId: text('tag_id')
+      .notNull()
+      .references(() => tags.id, { onDelete: 'cascade' }),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.pitchId, t.tagId] }) }),
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
@@ -149,3 +172,5 @@ export type UserFolderAccess = typeof userFolderAccess.$inferSelect;
 export type NewUserFolderAccess = typeof userFolderAccess.$inferInsert;
 export type WebauthnCredential = typeof webauthnCredentials.$inferSelect;
 export type NewWebauthnCredential = typeof webauthnCredentials.$inferInsert;
+export type Tag = typeof tags.$inferSelect;
+export type PitchTag = typeof pitchTags.$inferSelect;

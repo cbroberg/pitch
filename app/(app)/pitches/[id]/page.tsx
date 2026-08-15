@@ -104,6 +104,8 @@ export default function PitchDetailPage() {
   const [dirty, setDirty] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [tagSaving, setTagSaving] = useState(false);
+  const [tagSaved, setTagSaved] = useState(false);
 
   const [userRole, setUserRole] = useState<string>('super_admin');
 
@@ -214,32 +216,56 @@ export default function PitchDetailPage() {
       .catch(() => {});
   }, [id]);
 
-  async function handleSave() {
-    setLoading(true);
+  /**
+   * Tags save the moment a chip is added or removed — never via "Save Changes".
+   * A chip LOOKS committed, and the Save button sits far below the thumbnail,
+   * off-screen: folding tags into that flow silently threw away tags the owner
+   * had every reason to believe were stored. (F022.6)
+   */
+  async function saveTags(next: string[]) {
+    setTags(next); // optimistic — the chip stays put while the request runs
+    setTagSaving(true);
+    setTagSaved(false);
     try {
-      const [res, tagRes] = await Promise.all([
-        fetch(`/api/pitches/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, description: description || null, isPublished, folderId: folderId === 'none' ? null : folderId }),
-        }),
-        fetch(`/api/pitches/${id}/tags`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tags }),
-        }),
-      ]);
-      if (!res.ok || !tagRes.ok) throw new Error('Failed');
-      const updated: Pitch = await res.json();
-      const savedTags: { tags: string[] } = await tagRes.json();
-      setPitch(updated);
-      setTags(savedTags.tags);
+      const res = await fetch(`/api/pitches/${id}/tags`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: next }),
+      });
+      if (!res.ok) {
+        // Surface what the server actually said instead of a generic failure.
+        const detail = await res.json().catch(() => null);
+        throw new Error(detail?.error || `HTTP ${res.status}`);
+      }
+      const saved: { tags: string[] } = await res.json();
+      setTags(saved.tags);
+      setTagSaved(true);
+      setTimeout(() => setTagSaved(false), 2000);
       // Refresh the suggestion pool so a tag just invented here is offered on
       // the next pitch too.
       fetch('/api/tags')
         .then((r) => (r.ok ? r.json() : []))
         .then((all: { name: string }[]) => setAllTags(all.map((t) => t.name)))
         .catch(() => {});
+    } catch (e) {
+      toast.error(`Kunne ikke gemme tags: ${e instanceof Error ? e.message : 'ukendt fejl'}`);
+      loadTags(); // fall back to what the server actually holds
+    } finally {
+      setTagSaving(false);
+    }
+  }
+
+  async function handleSave() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/pitches/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description: description || null, isPublished, folderId: folderId === 'none' ? null : folderId }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      const updated: Pitch = await res.json();
+      setPitch(updated);
       setDirty(false);
       toast.success('Saved');
     } catch {
@@ -727,16 +753,29 @@ export default function PitchDetailPage() {
                   </div>
                   {userRole !== 'viewer' && (
                     <div className="space-y-2">
-                      <Label>Tags</Label>
+                      <div className="flex items-center gap-2">
+                        <Label>Tags</Label>
+                        {tagSaving && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid="pitch-tags-saving">
+                            <RefreshCwIcon className="h-3 w-3 animate-spin" />
+                            Gemmer…
+                          </span>
+                        )}
+                        {!tagSaving && tagSaved && (
+                          <span className="text-xs text-emerald-500" data-testid="pitch-tags-saved">
+                            ✓ Gemt
+                          </span>
+                        )}
+                      </div>
                       <TagInput
                         testId="pitch-tags"
                         value={tags}
                         suggestions={allTags}
                         placeholder="fx shop, ai, demo…"
-                        onChange={(next) => { setTags(next); setDirty(true); }}
+                        onChange={saveTags}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Bruges til at finde pitches på tværs af mapper. Enter eller komma tilføjer.
+                        Gemmes med det samme. Enter eller komma tilføjer. Bruges til at finde pitches på tværs af mapper.
                       </p>
                     </div>
                   )}

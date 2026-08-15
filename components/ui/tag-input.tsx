@@ -40,7 +40,11 @@ export function TagInput({
 }: TagInputProps) {
   const [draft, setDraft] = React.useState('');
   const [open, setOpen] = React.useState(false);
-  const [highlight, setHighlight] = React.useState(0);
+  // -1 = the user has not navigated the list. That distinction matters: with
+  // nothing highlighted, Enter must commit exactly what was TYPED (so "sh" can
+  // become its own tag even though "shop" exists); once an arrow key has moved
+  // the highlight, Enter picks that suggestion instead.
+  const [highlight, setHighlight] = React.useState(-1);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const wrapRef = React.useRef<HTMLDivElement>(null);
 
@@ -72,36 +76,52 @@ export function TagInput({
     // A paste can carry several tags separated by comma.
     for (const part of draft.split(',')) add(part);
     setDraft('');
-    setHighlight(0);
+    setHighlight(-1);
+  }
+
+  function pick(tag: string) {
+    add(tag);
+    setDraft('');
+    setHighlight(-1);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'ArrowDown' && matches.length > 0) {
       e.preventDefault();
       setOpen(true);
+      // From "nothing highlighted" the first press lands on the first item.
       setHighlight((h) => (h + 1) % matches.length);
       return;
     }
     if (e.key === 'ArrowUp' && matches.length > 0) {
       e.preventDefault();
-      setHighlight((h) => (h - 1 + matches.length) % matches.length);
+      setOpen(true);
+      setHighlight((h) => (h < 0 ? matches.length - 1 : (h - 1 + matches.length) % matches.length));
       return;
     }
     if (e.key === 'Escape') {
       setOpen(false);
+      setHighlight(-1);
       return;
     }
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      // Enter picks the highlighted suggestion when the list is open,
-      // otherwise it commits exactly what was typed.
-      if (open && matches.length > 0 && draft.trim()) {
-        add(matches[highlight] ?? draft);
-        setDraft('');
-        setHighlight(0);
-      } else if (draft.trim()) {
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      // A highlighted suggestion wins — including when the input is EMPTY and
+      // the owner just arrowed down the list, which is the whole point of
+      // being able to arrow at all.
+      if (open && highlight >= 0 && matches[highlight]) {
+        e.preventDefault();
+        pick(matches[highlight]);
+        return;
+      }
+      if (e.key === 'Enter' && draft.trim()) {
+        e.preventDefault();
         commitDraft();
       }
+      return;
+    }
+    if (e.key === ',') {
+      e.preventDefault();
+      if (draft.trim()) commitDraft();
       return;
     }
     if (e.key === 'Backspace' && draft === '' && value.length > 0) {
@@ -155,7 +175,8 @@ export function TagInput({
           onChange={(e) => {
             setDraft(e.target.value);
             setOpen(true);
-            setHighlight(0);
+            // Typing changes the match list, so any prior highlight is stale.
+            setHighlight(-1);
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
@@ -180,9 +201,7 @@ export function TagInput({
               // onMouseDown so the pick lands before the input's blur fires.
               onMouseDown={(e) => {
                 e.preventDefault();
-                add(s);
-                setDraft('');
-                setHighlight(0);
+                pick(s);
                 inputRef.current?.focus();
               }}
               onMouseEnter={() => setHighlight(i)}

@@ -4,6 +4,8 @@ import { createPitch, getPitchBySlug, updatePitch } from '@/lib/db/queries/pitch
 import { savePitchFile, detectFileType, listPitchFiles } from '@/lib/upload';
 import { generateUniqueSlug, toSlug } from '@/lib/slug';
 import { setPitchTags, getTagsForPitch } from '@/lib/db/queries/tags';
+import { createToken } from '@/lib/db/queries/access-tokens';
+import { generateToken } from '@/lib/tokens';
 
 export async function POST(request: NextRequest) {
   const userId = await validateApiKey(request);
@@ -21,6 +23,9 @@ export async function POST(request: NextRequest) {
     // Optional comma-separated tags so a session can categorise at upload time
     // instead of the owner re-tagging by hand afterwards. (F022.5)
     const tagsField = formData.get('tags') as string | null;
+    // Opt-in: only mint a share link when asked. Minting one per push would
+    // create links nobody requested and pile up unseen exposure. (F023)
+    const wantShare = formData.get('share') === 'true';
     const files = formData.getAll('files') as File[];
 
     if (!title) {
@@ -68,10 +73,28 @@ export async function POST(request: NextRequest) {
       setPitchTags(pitch.id, tagsField.split(','));
     }
 
-    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    const baseUrl = (process.env.BASE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+
+    // This field used to be `${baseUrl}/view/` — a URL with no token, which
+    // could never open anything. A value that LOOKS usable is worse than none,
+    // so it is now either a real link or explicitly null. (F023)
+    let share: string | null = null;
+    if (wantShare) {
+      const tok = createToken({
+        pitchId: pitch.id,
+        token: generateToken(),
+        type: 'anonymous',
+        label: 'cli push',
+      });
+      share = `${baseUrl}/view/${tok.token}`;
+    }
+
     return NextResponse.json({
       pitch: { ...updated, tags: getTagsForPitch(pitch.id) },
-      shareUrl: `${baseUrl}/view/`,
+      shareUrl: share,
+      shareHint: share
+        ? undefined
+        : 'No share link was created. Send share=true, or POST /api/v1/pitches/<id>/share.',
     });
   } catch (error) {
     console.error('CLI push error:', error);

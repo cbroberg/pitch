@@ -14,14 +14,38 @@ export function PitchViewer({ pitch, token, contentUrl }: PitchViewerProps) {
   const startTimeRef = useRef(Date.now());
   const sentRef = useRef(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  // Estimated fill, not a server measurement — see downloadPdf(). Kept apart
+  // from `downloadingPdf` so the bar can finish AFTER the file is in hand.
+  const [pdfProgress, setPdfProgress] = useState(0);
+  const [pdfElapsed, setPdfElapsed] = useState(0);
 
   // PDF export is offered only for HTML pitches that are NOT content-protected
   // or watermarked — those signal "sensitive", so no downloadable copy.
   const pdfAllowed =
     pitch.fileType === 'html' && !token.protectContent && !token.watermark;
 
+  /**
+   * Export takes real time: a cold 24-slide deck measured 37s on production
+   * (the server drives a browser through every slide), against 0.6s once the
+   * result is cached. Without feedback that reads as a hung button.
+   *
+   * The fill is an ESTIMATE from elapsed time, not progress reported by the
+   * server — there is no progress channel on a single request. It eases and
+   * stops short of full on its own, so it can never claim to be finished
+   * before the file actually is; only a delivered blob fills it to 100%.
+   */
   async function downloadPdf() {
     setDownloadingPdf(true);
+    setPdfProgress(0);
+    setPdfElapsed(0);
+    const startedAt = Date.now();
+    const ticker = setInterval(() => {
+      const seconds = (Date.now() - startedAt) / 1000;
+      setPdfElapsed(Math.floor(seconds));
+      // Asymptotic: fast at first, then visibly slowing — never past 92.
+      setPdfProgress(92 * (1 - Math.exp(-seconds / 12)));
+    }, 100);
+    let ok = false;
     try {
       const res = await fetch(`/api/view/${token.token}/pdf`);
       if (!res.ok) throw new Error('export failed');
@@ -34,10 +58,24 @@ export function PitchViewer({ pitch, token, contentUrl }: PitchViewerProps) {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      ok = true;
     } catch {
       // best-effort; the button re-enables so the viewer can retry
     } finally {
-      setDownloadingPdf(false);
+      clearInterval(ticker);
+      if (ok) {
+        // Let the bar visibly complete before the button returns to rest.
+        setPdfProgress(100);
+        setTimeout(() => {
+          setDownloadingPdf(false);
+          setPdfProgress(0);
+          setPdfElapsed(0);
+        }, 450);
+      } else {
+        setDownloadingPdf(false);
+        setPdfProgress(0);
+        setPdfElapsed(0);
+      }
     }
   }
 
@@ -98,6 +136,8 @@ export function PitchViewer({ pitch, token, contentUrl }: PitchViewerProps) {
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           title={pitch.title}
         />
+        {/* The button doubles as the progress gauge while it works, so the wait
+            is legible without adding a second element over the pitch. */}
         {pdfAllowed && (
           <button
             type="button"
@@ -105,12 +145,28 @@ export function PitchViewer({ pitch, token, contentUrl }: PitchViewerProps) {
             disabled={downloadingPdf}
             data-testid="viewer-download-pdf"
             aria-label="Download som PDF"
-            className="fixed bottom-4 right-4 z-50 inline-flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur transition hover:bg-black/85 active:scale-95 disabled:opacity-60"
+            role={downloadingPdf ? 'progressbar' : undefined}
+            aria-valuemin={downloadingPdf ? 0 : undefined}
+            aria-valuemax={downloadingPdf ? 100 : undefined}
+            aria-valuenow={downloadingPdf ? Math.round(pdfProgress) : undefined}
+            aria-valuetext={downloadingPdf ? `Genererer PDF, ${pdfElapsed} sekunder` : undefined}
+            className="fixed bottom-4 right-4 z-50 inline-flex min-w-[11.5rem] items-center justify-center gap-2 overflow-hidden rounded-full bg-black/70 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur transition hover:bg-black/85 active:scale-95 disabled:opacity-100"
           >
+            {/* Fill sweeps left → right underneath the label. */}
+            {downloadingPdf && (
+              <span
+                aria-hidden="true"
+                data-testid="viewer-pdf-progress"
+                className="absolute inset-y-0 left-0 bg-white/30 transition-[width] duration-200 ease-out"
+                style={{ width: `${pdfProgress}%` }}
+              />
+            )}
             <DownloadIcon
-              className={downloadingPdf ? 'h-4 w-4 animate-pulse' : 'h-4 w-4'}
+              className={downloadingPdf ? 'relative h-4 w-4 animate-pulse' : 'h-4 w-4'}
             />
-            {downloadingPdf ? 'Genererer PDF…' : 'Download PDF'}
+            <span className="relative tabular-nums">
+              {downloadingPdf ? `Genererer PDF… ${pdfElapsed}s` : 'Download PDF'}
+            </span>
           </button>
         )}
       </div>

@@ -152,12 +152,15 @@ export function PitchViewer({ pitch, token, contentUrl }: PitchViewerProps) {
             aria-valuetext={downloadingPdf ? `Genererer PDF, ${pdfElapsed} sekunder` : undefined}
             className="fixed bottom-4 right-4 z-50 inline-flex min-w-[11.5rem] items-center justify-center gap-2 overflow-hidden rounded-full bg-black/70 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur transition hover:bg-black/85 active:scale-95 disabled:opacity-100"
           >
-            {/* Fill sweeps left → right underneath the label. */}
+            {/* Fill sweeps left → right underneath the label. Green reads as
+                "working, going well"; emerald-600 at 75% over the black pill
+                keeps the white label at ~4.6:1, so the text stays readable at
+                every fill level rather than only at the ends. */}
             {downloadingPdf && (
               <span
                 aria-hidden="true"
                 data-testid="viewer-pdf-progress"
-                className="absolute inset-y-0 left-0 bg-white/30 transition-[width] duration-200 ease-out"
+                className="absolute inset-y-0 left-0 bg-emerald-600/75 transition-[width] duration-200 ease-out"
                 style={{ width: `${pdfProgress}%` }}
               />
             )}

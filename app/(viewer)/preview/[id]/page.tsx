@@ -46,7 +46,9 @@ export default async function PreviewPage({ params }: Props) {
       <iframe
         src={contentUrl}
         className="w-full h-screen border-0"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        // Samme fem som viewer-ruten. allow-modals lader en pitch kalde
+        // window.print(); uden det dropper browseren kaldet i stilhed. (F028)
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
         title={pitch.title}
       />
     );

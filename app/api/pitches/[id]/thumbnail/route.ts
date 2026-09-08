@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserId } from '@/lib/get-user-id';
-import { thumbnailPath, capturePitchThumbnail } from '@/lib/screenshot';
+import { thumbnailPath, capturePitchThumbnail, queuePitchThumbnail } from '@/lib/screenshot';
 import { getPitchById } from '@/lib/db/queries/pitches';
 import fs from 'fs';
 
@@ -15,6 +15,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const filePath = thumbnailPath(id);
 
   if (!fs.existsSync(filePath)) {
+    // Self-heal pitches created before capture-on-create: kick off a capture in
+    // the background and still answer now. Awaiting here would hang the list
+    // for as many seconds as there are missing thumbnails. (F026)
+    const pitch = getPitchById(id);
+    if (pitch) queuePitchThumbnail(id, pitch.entryFile);
     return new NextResponse(null, { status: 404 });
   }
 

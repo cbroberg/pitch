@@ -5,6 +5,7 @@ import { savePitchFile, detectFileType, listPitchFiles } from '@/lib/upload';
 import { generateUniqueSlug, toSlug } from '@/lib/slug';
 import { setPitchTags, getTagsForPitch } from '@/lib/db/queries/tags';
 import { createToken } from '@/lib/db/queries/access-tokens';
+import { queuePitchThumbnail } from '@/lib/screenshot';
 import { generateToken } from '@/lib/tokens';
 
 export async function POST(request: NextRequest) {
@@ -66,6 +67,10 @@ export async function POST(request: NextRequest) {
         isPublished,
       } : {}),
     });
+
+    // Same as the web upload: capture the preview now rather than leaving the
+    // owner to press "Opdater" on every pushed pitch. (F026)
+    queuePitchThumbnail(pitch.id, entryFile);
 
     // Only touch tags when the field is present, so a push that omits it keeps
     // whatever the owner has curated in the UI.

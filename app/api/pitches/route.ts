@@ -5,6 +5,7 @@ import { savePitchFile, detectFileType, listPitchFiles } from '@/lib/upload';
 import { generateUniqueSlug } from '@/lib/slug';
 import { getUserFolderIds } from '@/lib/db/queries/user-folder-access';
 import { getTagsForPitches } from '@/lib/db/queries/tags';
+import { queuePitchThumbnail } from '@/lib/screenshot';
 
 export async function GET() {
   try {
@@ -66,6 +67,11 @@ export async function POST(request: NextRequest) {
 
       const { updatePitch } = await import('@/lib/db/queries/pitches');
       updatePitch(pitch.id, { fileType, entryFile });
+
+      // A pitch with no preview image looks broken in the list, and the owner
+      // had to press "Opdater" on every single one. Capture it at creation
+      // instead — queued, so the response is not held up by a browser. (F026)
+      queuePitchThumbnail(pitch.id, entryFile);
     }
 
     return NextResponse.json(pitch, { status: 201 });

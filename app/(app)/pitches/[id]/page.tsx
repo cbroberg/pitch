@@ -816,7 +816,7 @@ export default function PitchDetailPage() {
                     </span>
                   </div>
                   {pitch.fileType === 'html' && (
-                    <div className="space-y-2">
+                    <div className="space-y-2" data-testid="pitch-thumbnail-panel">
                       <div className="flex items-center justify-between">
                         <Label>Thumbnail</Label>
                         <Button
@@ -825,6 +825,7 @@ export default function PitchDetailPage() {
                           onClick={refreshThumbnail}
                           disabled={thumbRefreshing}
                           className="h-7 text-xs"
+                          data-testid="pitch-thumbnail-refresh"
                         >
                           <RefreshCwIcon className={cn('mr-1 h-3 w-3', thumbRefreshing && 'animate-spin')} />
                           {thumbRefreshing ? 'Genererer…' : 'Opdater'}

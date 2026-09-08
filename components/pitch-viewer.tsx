@@ -133,7 +133,12 @@ export function PitchViewer({ pitch, token, contentUrl }: PitchViewerProps) {
         <iframe
           src={contentUrl}
           className="h-screen w-full border-0"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          // allow-modals lader en pitch kalde window.print(). Uden det dropper
+          // browseren kaldet i STILHED — målt i en rigtig browser: "Ignored
+          // call to 'print()'. The document is sandboxed, and the
+          // 'allow-modals' keyword is not set." — så en print-knap i en pitch
+          // bare ikke gør noget, uden at nogen får en fejl at gå efter. (F028)
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
           title={pitch.title}
         />
         {/* The button doubles as the progress gauge while it works, so the wait

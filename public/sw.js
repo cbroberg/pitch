@@ -7,7 +7,7 @@
 // new build ships a byte-changed sw.js → the browser installs it into "waiting"
 // and the in-app update banner can offer it (F021). Update is USER-gated: we do
 // NOT skipWaiting on install; the page posts SKIP_WAITING when the user taps.
-const SW_BUILD = 'mtspposb';
+const SW_BUILD = 'mtsyseyc';
 const CACHE = 'pitch-vault-' + SW_BUILD;
 const SHELL = [
   '/favicon.svg',

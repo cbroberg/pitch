@@ -5,7 +5,7 @@ import { pathToFileURL } from 'url';
 import sharp from 'sharp';
 import { PDFDocument } from 'pdf-lib';
 import type { Page } from 'playwright-core';
-import { launchChromium } from '@/lib/browser';
+import { withBrowser } from '@/lib/browser';
 import { getPitchStoragePath } from '@/lib/storage';
 
 const SLIDE_W = 1280;
@@ -198,30 +198,25 @@ export async function getCachedPitchPdf(
   return pdf;
 }
 
-// Serialize PDF jobs: launching several Chromium instances at once would exhaust
-// a small single-CPU machine. Each call waits for the previous one to finish.
-let pdfChain: Promise<unknown> = Promise.resolve();
-
 /** Render a pitch to a PDF, auto-detecting deck vs document. Prefer
- *  {@link getCachedPitchPdf} on the request path; this always re-renders. */
+ *  {@link getCachedPitchPdf} on the request path; this always re-renders.
+ *
+ *  Serialisation now lives in lib/browser.ts and is shared with thumbnail
+ *  capture. A local queue here only serialised PDFs against other PDFs, so a
+ *  PDF and a thumbnail could still start two Chromiums at once on the one
+ *  shared CPU — which is how both ended up timing out. (F027) */
 export function generatePitchPdf(
   dir: string,
   entryFile?: string | null,
 ): Promise<Buffer> {
-  const run = pdfChain.then(
-    () => renderPdf(dir, entryFile),
-    () => renderPdf(dir, entryFile),
-  );
-  pdfChain = run.catch(() => {});
-  return run;
+  return renderPdf(dir, entryFile);
 }
 
 async function renderPdf(dir: string, entryFile?: string | null): Promise<Buffer> {
   const htmlFile = resolveHtmlFile(dir, entryFile);
   if (!htmlFile) throw new Error('No HTML entry file to render');
 
-  const browser = await launchChromium();
-  try {
+  return withBrowser(async (browser) => {
     const ctx = await browser.newContext({
       viewport: { width: SLIDE_W, height: SLIDE_H },
       // 1x keeps memory + the synchronous pdf-lib image embedding light enough
@@ -264,7 +259,5 @@ async function renderPdf(dir: string, entryFile?: string | null): Promise<Buffer
       printBackground: true,
       margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
     });
-  } finally {
-    await browser.close();
-  }
+  });
 }

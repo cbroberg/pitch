@@ -114,15 +114,25 @@ export default function PitchDetailPage() {
 
   async function refreshThumbnail() {
     setThumbRefreshing(true);
-    await fetch(`/api/pitches/${id}/thumbnail`, { method: 'POST' });
-    // Poll until file appears (max ~15s)
-    for (let i = 0; i < 15; i++) {
-      await new Promise((r) => setTimeout(r, 1000));
-      const check = await fetch(`/api/pitches/${id}/thumbnail`);
-      if (check.ok) break;
+    try {
+      // The endpoint now waits for the capture and answers with what actually
+      // happened. It used to answer instantly regardless, so a failed capture
+      // left this button spinning through a blind 15-second poll and then
+      // quietly gave up with no error anywhere. (F027)
+      const res = await fetch(`/api/pitches/${id}/thumbnail`, { method: 'POST' });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        throw new Error(detail?.error || `HTTP ${res.status}`);
+      }
+      setThumbKey((k) => k + 1);
+      toast.success('Thumbnail opdateret');
+    } catch (e) {
+      toast.error(
+        `Kunne ikke lave thumbnail: ${e instanceof Error ? e.message : 'ukendt fejl'}`,
+      );
+    } finally {
+      setThumbRefreshing(false);
     }
-    setThumbKey((k) => k + 1);
-    setThumbRefreshing(false);
   }
 
   // Template dialog

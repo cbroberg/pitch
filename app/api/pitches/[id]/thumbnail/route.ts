@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserId } from '@/lib/get-user-id';
-import { thumbnailPath, capturePitchThumbnail, queuePitchThumbnail } from '@/lib/screenshot';
+import { thumbnailPath, queuePitchThumbnail } from '@/lib/screenshot';
 import { getPitchById } from '@/lib/db/queries/pitches';
 import fs from 'fs';
 
@@ -43,10 +43,13 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const pitch = getPitchById(id);
   if (!pitch) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  // Fire and forget
-  void capturePitchThumbnail(id, pitch.entryFile).catch((e) =>
-    console.error('[thumbnail] capture failed', e),
-  );
-
+  // Wait for the real outcome. This used to answer {ok:true} the instant it
+  // started, so a capture that failed was indistinguishable from one that
+  // worked — the button just spun until the client gave up. force: the whole
+  // point of the button is to REPLACE an existing thumbnail. (F027)
+  const result = await queuePitchThumbnail(id, pitch.entryFile, { force: true });
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

@@ -5,7 +5,7 @@ import { getUserId } from '@/lib/get-user-id';
 import { getPitchById, updatePitch } from '@/lib/db/queries/pitches';
 import { savePitchFile, detectFileType, listPitchFiles } from '@/lib/upload';
 import { getPitchStoragePath } from '@/lib/storage';
-import { capturePitchThumbnail } from '@/lib/screenshot';
+import { queuePitchThumbnail } from '@/lib/screenshot';
 
 function isHtml(name: string) {
   return name.toLowerCase().endsWith('.html') || name.toLowerCase().endsWith('.htm');
@@ -57,7 +57,8 @@ export async function POST(
     updatePitch(id, { fileType, entryFile });
 
     if (fileType === 'html') {
-      void capturePitchThumbnail(id, entryFile).catch((e) => console.error('[thumbnail]', e));
+      // force: the uploaded file replaced the old one, so the old preview is wrong.
+      void queuePitchThumbnail(id, entryFile, { force: true });
     }
 
     return NextResponse.json({ success: true, files: fileList });

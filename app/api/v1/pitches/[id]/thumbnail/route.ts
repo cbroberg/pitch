@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateApiKey } from '@/lib/auth/api-key';
 import { getPitchById } from '@/lib/db/queries/pitches';
-import { thumbnailPath, capturePitchThumbnail } from '@/lib/screenshot';
+import { thumbnailPath, queuePitchThumbnail } from '@/lib/screenshot';
 import fs from 'fs';
 
 export async function GET(
@@ -21,13 +21,10 @@ export async function GET(
 
   const filePath = thumbnailPath(id);
 
-  // Generate on-demand if the screenshot hasn't been captured yet
+  // Generate on-demand if the screenshot hasn't been captured yet — queued, so
+  // this never runs a browser alongside another one. (F027)
   if (!fs.existsSync(filePath)) {
-    try {
-      await capturePitchThumbnail(id, pitch.entryFile);
-    } catch (e) {
-      console.error('[v1/thumbnail] capture failed', e);
-    }
+    await queuePitchThumbnail(id, pitch.entryFile);
   }
 
   if (!fs.existsSync(filePath)) {

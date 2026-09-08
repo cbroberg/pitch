@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserId } from '@/lib/get-user-id';
 import { createPitch, updatePitch } from '@/lib/db/queries/pitches';
-import { capturePitchThumbnail } from '@/lib/screenshot';
+import { queuePitchThumbnail } from '@/lib/screenshot';
 import { getTemplateById } from '@/lib/db/queries/templates';
 import { readTemplateFile } from '@/lib/template-files';
 import { savePitchFile } from '@/lib/upload';
@@ -81,7 +81,7 @@ Emne: ${prompt}`;
     await savePitchFile(pitch.id, 'index.html', Buffer.from(html, 'utf-8'));
     updatePitch(pitch.id, { fileType: 'html', entryFile: 'index.html' });
 
-    void capturePitchThumbnail(pitch.id).catch((e) => console.error('[thumbnail]', e));
+    void queuePitchThumbnail(pitch.id);
 
     return NextResponse.json({ pitchId: pitch.id, html }, { status: 201 });
   } catch (err) {

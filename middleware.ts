@@ -5,6 +5,14 @@ import { redirectTargetFor } from '@/lib/hosts';
 
 const COOKIE_NAME = 'pitch-vault-session';
 
+/**
+ * Every page under app/(app)/ needs a session. This list is hand-written, and
+ * three pages had been forgotten (/help, /templates, /templates/generate) —
+ * they answered a raw 500 instead of the login screen, and the error response
+ * carried the rendered page with it, so a visitor could read them inside the
+ * failure. middleware.protected-paths.test.ts now reads app/(app)/ off disk and
+ * fails if a page is missing here, so the next one cannot be forgotten. (F030.1)
+ */
 const PROTECTED_PATHS = [
   '/dashboard',
   '/pitches',
@@ -12,6 +20,9 @@ const PROTECTED_PATHS = [
   '/access',
   '/users',
   '/settings',
+  '/help',
+  '/templates',
+  // Not under app/(app)/ — the viewer's own preview route, protected here too.
   '/preview',
 ];
 

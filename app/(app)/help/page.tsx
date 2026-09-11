@@ -9,7 +9,7 @@ import {
   MailIcon,
   BarChart3Icon,
 } from 'lucide-react';
-import { getRequestOrigin } from '@/lib/auth/webauthn';
+import { displayOrigin } from '@/lib/hosts';
 
 interface StepItem {
   label: string;
@@ -143,7 +143,8 @@ const sections: Section[] = [
 ];
 
 export default async function HelpPage() {
-  const origin = getRequestOrigin(await headers());
+  const h = await headers();
+  const origin = displayOrigin(h.get('host'), h.get('x-forwarded-proto') ?? 'https');
   return (
     <>
       <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4">

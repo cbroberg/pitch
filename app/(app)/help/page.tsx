@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +9,7 @@ import {
   MailIcon,
   BarChart3Icon,
 } from 'lucide-react';
+import { getRequestOrigin } from '@/lib/auth/webauthn';
 
 interface StepItem {
   label: string;
@@ -101,7 +103,7 @@ const sections: Section[] = [
         n: 8,
         heading: 'Åbn linket i inkognito',
         body: 'Åbn en ny inkognito-fane (Cmd+Shift+N på Mac / Ctrl+Shift+N på Windows) og indsæt viewer-linket. Inkognito sikrer du ser det præcis som en ekstern modtager — uden din admin-session.',
-        code: 'https://pitch.broberg.dk/view/[token]',
+        code: '{origin}/view/[token]',
         note: 'HTML-præsentationer vises i en sandboxed iframe. PDF vises inline. Billeder vises responsivt.',
       },
     ],
@@ -140,7 +142,8 @@ const sections: Section[] = [
   },
 ];
 
-export default function HelpPage() {
+export default async function HelpPage() {
+  const origin = getRequestOrigin(await headers());
   return (
     <>
       <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4">
@@ -191,7 +194,7 @@ export default function HelpPage() {
                       )}
                       {step.code && (
                         <code className="block bg-muted px-3 py-2 rounded text-xs font-mono break-all">
-                          {step.code}
+                          {step.code.replace('{origin}', origin)}
                         </code>
                       )}
                       {step.note && (

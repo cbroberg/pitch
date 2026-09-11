@@ -70,3 +70,31 @@ Bemærk sideeffekten, så den ikke overrasker: siden renderes nu ved forespørgs
 ## Afhængigheder
 
 Ingen. DNS og certifikater var på plads inden ordren (buddy ejer zonen; intet nyt skulle laves her).
+
+## Reuse
+
+Discovery-tjek gennemført (`discovery.broberg.ai/api/search`) for de kapabiliteter
+denne epic rører:
+
+| behov | findes der en `@broberg/*`? | valg |
+|---|---|---|
+| værtsnavn / primær adresse | nej — det er én env-værdi pr. app | env (`BASE_URL`), som i forvejen |
+| omdirigering mellem værtsnavne | nej | tre linjer i repoets egen middleware, se F029.2 |
+| mail | **ja — `@broberg/mail`** | **ikke adopteret her endnu; se nedenfor** |
+
+**Den ene reelle genbrugs-gæld, skrevet ned frem for sprunget over:** dette repo
+kalder Resend direkte (`lib/email/resend.ts`, `new Resend(apiKey)`) i stedet for
+gennem `@broberg/mail`. Det er præcis den rå leverandør-integration husreglen
+peger på: skal afsenderen eller leverandøren skiftes, skal det kunne gøres ÉT sted.
+
+Det er **ikke** lavet om som en del af denne epic, og det er et bevidst valg:
+ordren var et domæneskifte, og at flytte mail-vejen samtidig ville blande to
+ændringer i den samme udrulning — hvoraf den ene kan gøre udgående mail tavst
+udød. Det hører til sit eget kort med sin egen verifikation.
+
+Det blev relevant netop nu, fordi Christian samme dag skrev *"Husk at mail
+udsender på broberg.ai nu."* Målt: **linkene** i mailen bygges af `BASE_URL` og er
+allerede `.ai`; **afsenderen** (`EMAIL_FROM`) er `cb@webhouse.dk` og har aldrig
+været et pitch-domæne. Skal afsenderen flyttes til broberg.ai, kræver det
+DNS-records (SPF/DKIM) og verifikation hos Resend først — ellers holder al
+udgående mail op med at blive leveret, uden en fejl nogen ser.

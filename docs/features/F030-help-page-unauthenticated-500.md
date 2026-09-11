@@ -33,9 +33,30 @@ Bevist frem for påstået. En worktree på `9048988` — commit'en før F029.1 �
 
 ## Hvor slemt er det
 
-**Lavt-til-middel.** Fejlsiden er generisk og indeholder hverken data, stier eller stakspor — der lækker intet. Men:
+**Middel — og højere end jeg først skrev.** Min første vurdering her lød "fejlsiden er
+generisk, der lækker intet". Det var forkert, og jeg opdagede det først da jeg målte
+svaret i stedet for at antage det:
 
-- `/help` er admin-indhold der står åbent uden vagt. I dag gør layoutet arbejdet ved at kaste; det er held, ikke design.
+```
+$ curl https://pitch.broberg.ai/help          # ingen session
+HTTP 500   32.583 bytes
+$ grep -c "view/\[token\]" svaret            # → 1
+$ grep -o "Hjælp\|Pitch Vault" svaret        # → begge
+```
+
+**Fejlsiden bærer det renderede indhold med sig.** Next.js renderer siden, sidebjælken
+kaster bagefter, og fejlsvaret indeholder stadig det der nåede at blive bygget. En
+besøgende uden login kan altså LÆSE hjælpesiden — inde i en 500.
+
+Hvad der konkret ligger i den: en trin-for-trin vejledning i at uploade og dele en
+pitch. Ingen kundedata, ingen tokens, ingen stier, intet stakspor. Så skaden er lav i
+*indhold*. Men mekanismen er værd at forstå rigtigt, for den gælder hver eneste side
+under `app/(app)/`: **en side uden vagt lækker det den nåede at rendere, også når den
+ender i en fejl.** Næste side kan indeholde noget andet end en vejledning.
+
+Derudover:
+
+- `/help` er admin-indhold der står åbent uden vagt. Layoutet kaster, men først EFTER siden er renderet — så det stopper ikke læsningen, det gør bare svaret grimt. Held, ikke design.
 - Det er et live kundedomæne. En tom fejlskærm på en adresse folk får links til ser gået-i-stykker ud.
 - **Den samme mangel kan ramme en fremtidig side.** Vagten er en håndholdt liste, og en ny side under `app/(app)/` bliver ikke automatisk beskyttet. Det er den generelle fejl bag det konkrete symptom.
 

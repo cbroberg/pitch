@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { buildInviteEmail } from './templates/invite';
 import { buildUserInviteEmail } from './templates/invite-user';
 import { buildBatchInviteEmail } from './templates/invite-batch';
+import { MAIL_FROM } from '@/lib/email/from';
 
 function getResend(): Resend {
   const apiKey = process.env.RESEND_API_KEY;
@@ -18,8 +19,7 @@ export async function sendInviteEmail(params: {
   pin?: string;
 }): Promise<void> {
   const resend = getResend();
-  const from =
-    process.env.EMAIL_FROM || 'Pitch Vault <noreply@pitchvault.app>';
+  const from = MAIL_FROM;
 
   const { html, text } = buildInviteEmail(params);
 
@@ -44,8 +44,7 @@ export async function sendUserInviteEmail(params: {
   expiresAt: Date;
 }): Promise<void> {
   const resend = getResend();
-  const from =
-    process.env.EMAIL_FROM || 'Pitch Vault <noreply@pitchvault.app>';
+  const from = MAIL_FROM;
 
   const { html, text } = buildUserInviteEmail(params);
 
@@ -69,7 +68,7 @@ export async function sendBatchInviteEmail(params: {
   message?: string;
 }): Promise<void> {
   const resend = getResend();
-  const from = process.env.EMAIL_FROM || 'Pitch Vault <noreply@pitchvault.app>';
+  const from = MAIL_FROM;
 
   const { html, text } = buildBatchInviteEmail(params);
   const subject = params.pitches.length === 1

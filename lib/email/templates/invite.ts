@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { EMAIL_FOOTER } from '@/lib/email/footer';
+import { EMAIL_FOOTER, EMAIL_FOOTER_HTML } from '@/lib/email/footer';
 
 export function buildInviteEmail(params: {
   pitchTitle: string;
@@ -54,7 +54,7 @@ export function buildInviteEmail(params: {
       <p style="margin: 0; color: #6b7280; font-size: 14px;">Or copy this link: <a href="${viewUrl}" style="color: #2563eb;">${viewUrl}</a></p>
     </div>
     <div style="background: #f3f4f6; padding: 16px; text-align: center;">
-      <p style="margin: 0; color: #9ca3af; font-size: 12px;">${EMAIL_FOOTER}</p>
+      <p style="margin: 0; color: #9ca3af; font-size: 12px;">${EMAIL_FOOTER_HTML}</p>
     </div>
   </div>
 </body>

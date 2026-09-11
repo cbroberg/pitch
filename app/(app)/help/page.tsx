@@ -193,7 +193,10 @@ export default async function HelpPage() {
                         </ul>
                       )}
                       {step.code && (
-                        <code className="block bg-muted px-3 py-2 rounded text-xs font-mono break-all">
+                        <code
+                          data-testid={`help-code-${step.n}`}
+                          className="block bg-muted px-3 py-2 rounded text-xs font-mono break-all"
+                        >
                           {step.code.replace('{origin}', origin)}
                         </code>
                       )}

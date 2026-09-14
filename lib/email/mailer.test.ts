@@ -99,3 +99,60 @@ describe('the boot check (F031.1)', () => {
     expect(isDeployed.slice(0, 200)).not.toContain('MAIL_LIVE');
   });
 });
+
+/**
+ * The gate answers `{ok:true, skipped:true}` when it is shut. Our callers treat
+ * a resolved promise as "the customer got it", so a skip MUST be raised here or
+ * an invitation that reached nobody returns quietly. (F031.1)
+ *
+ * Measured against the REAL package with an injected fetch, not a stand-in for
+ * it — a hand-rolled fake would be a test of my own idea of the contract.
+ */
+describe('a shut gate is raised, never swallowed (F031.1)', () => {
+  async function sendInvite(env: Record<string, string | undefined>, fetchImpl: typeof fetch) {
+    process.env = { ...ENV, ...env, RESEND_API_KEY: env.RESEND_API_KEY };
+    vi.resetModules();
+    delete (globalThis as Record<symbol, unknown>)[Symbol.for('pitch-vault.mailer')];
+
+    const { createMailer } = await import('@broberg/mail');
+    const m = createMailer({
+      apiKey: env.RESEND_API_KEY,
+      from: 'Pitch Vault <noreply@broberg.ai>',
+      live: env.MAIL_LIVE === 'true',
+      fetch: fetchImpl,
+    });
+    return m.send({ to: 'someone@external.example', subject: 'x', html: '<p>x</p>' });
+  }
+
+  const neverCalled = (() => {
+    throw new Error('the provider must not be contacted when the gate is shut');
+  }) as unknown as typeof fetch;
+
+  it('a KEYED mailer without MAIL_LIVE skips a real customer — and says why', async () => {
+    const r = await sendInvite({ RESEND_API_KEY: 're_x', MAIL_LIVE: undefined }, neverCalled);
+    expect(r.ok).toBe(true); // the shape that fools a caller
+    expect(r.skipped).toBe(true);
+    expect(r.reason).toBe('not-live'); // the dangerous one: a key IS present
+  });
+
+  it('our wrapper turns that success-shaped nothing into a thrown error', async () => {
+    const { mailer: _m } = await import('@/lib/email/mailer');
+    void _m;
+    const mod = await import('@/lib/email/resend');
+    // The helper is not exported; assert on the behaviour through a send.
+    // With no key at all the gate is shut for a different reason — still a skip.
+    process.env = { ...ENV, RESEND_API_KEY: undefined, MAIL_LIVE: undefined };
+    vi.resetModules();
+    delete (globalThis as Record<symbol, unknown>)[Symbol.for('pitch-vault.mailer')];
+    const fresh = await import('@/lib/email/resend');
+    void mod;
+    await expect(
+      fresh.sendInviteEmail({
+        to: 'someone@external.example',
+        pitchTitle: 'T',
+        viewUrl: 'https://pitch.broberg.ai/view/x',
+        expiresAt: null,
+      }),
+    ).rejects.toThrow(/NOT delivered/);
+  });
+});

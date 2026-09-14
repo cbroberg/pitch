@@ -61,15 +61,20 @@ describe('the boot check (F031.1)', () => {
     expect(err.mock.calls[0][0]).toContain('MAIL_LIVE=true');
   });
 
-  it('stays quiet on a deployed instance whose gate is open', async () => {
+  it('SAYS SO when the gate is open — silence would be indistinguishable from never running', async () => {
     const { assertMailGateSane } = await freshMailer({
       RESEND_API_KEY: 're_x',
       MAIL_LIVE: 'true',
       FLY_APP_NAME: 'pitch-vault',
     });
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     assertMailGateSane();
     expect(err).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledOnce();
+    // The mode must be IN the line — that is what makes it readable off a
+    // running machine rather than inferred.
+    expect(log.mock.calls[0][0]).toContain('live');
   });
 
   it('stays quiet on a developer machine — a shut gate there is correct', async () => {

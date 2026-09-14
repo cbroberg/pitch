@@ -50,6 +50,7 @@ export function isDeployed(): boolean {
 export function assertMailGateSane(): void {
   if (!isDeployed()) return;
   const mode = mailer().mode;
+
   if (mode !== 'live') {
     console.error(
       `[mail] DEPLOYED but the gate is "${mode}" — invitations will NOT reach ` +
@@ -57,5 +58,13 @@ export function assertMailGateSane(): void {
         `Fix: set MAIL_LIVE=true (mode "allowlist-only"), RESEND_API_KEY ("no-key"), ` +
         `or clear the kill-switch ("disabled").`,
     );
+    return;
   }
+
+  // Say so when it is HEALTHY too. A check that only ever speaks on failure is
+  // indistinguishable from one that never ran — which is the same false green
+  // the gate itself produces, rebuilt in the thing watching it. This line is
+  // what makes the mode readable on the running machine instead of inferred
+  // from the absence of a complaint.
+  console.log(`[mail] gate ok — mode "${mode}", customers are reachable`);
 }

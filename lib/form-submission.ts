@@ -63,7 +63,11 @@ export function parseSubmission(body: unknown): ParseResult {
   if (raw.subject !== undefined) {
     if (typeof raw.subject !== 'string') return { ok: false, error: '"subject" must be text' };
     if (raw.subject.length > MAX_LABEL) return { ok: false, error: '"subject" too long' };
-    subject = raw.subject;
+    // Line breaks out of a subject. It reaches the provider as JSON, so this is
+    // not classic header injection — but a field the sender controls must not
+    // be handed to anyone else's parser still carrying CR/LF, and we do not get
+    // to assume how the next provider builds its envelope.
+    subject = raw.subject.replace(/[\r\n]+/g, ' ');
   }
 
   return { ok: true, fields, subject };

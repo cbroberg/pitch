@@ -122,3 +122,25 @@ describe('an answer never becomes markup in our mail (F031.2)', () => {
     expect(text).toContain('(ikke udfyldt)');
   });
 });
+
+describe('the subject line is not a hole (F031.2)', () => {
+  it('strips CR/LF — the sender must not hand the provider a multi-line header', () => {
+    const r = parseSubmission({
+      subject: 'Svar\r\nBcc: someone@example.com',
+      fields: [{ label: 'A', value: 'x' }],
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.subject).toBe('Svar Bcc: someone@example.com');
+    expect(r.subject).not.toMatch(/[\r\n]/);
+  });
+
+  it('MUTATION CONTROL: the raw input really does carry a line break', () => {
+    expect('Svar\r\nBcc: x').toMatch(/[\r\n]/);
+  });
+
+  it('an ordinary subject passes through unchanged', () => {
+    const r = parseSubmission({ subject: 'Sådan ser et svar ud', fields: [{ label: 'A', value: 'x' }] });
+    expect(r.ok && r.subject).toBe('Sådan ser et svar ud');
+  });
+});

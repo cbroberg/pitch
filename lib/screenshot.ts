@@ -1,6 +1,8 @@
 import path from 'path';
+import { pathToFileURL } from 'url';
 import fs from 'fs';
 import sharp from 'sharp';
+import type { Page } from 'playwright-core';
 import { withBrowser } from '@/lib/browser';
 import { getPitchStoragePath, getTemplateStoragePath } from '@/lib/storage';
 
@@ -10,6 +12,33 @@ export function thumbnailPath(pitchId: string): string {
 
 export function templateThumbnailPath(templateId: string): string {
   return path.join(getTemplateStoragePath(templateId), '.thumb.jpg');
+}
+
+/** How long we wait for the page's images before taking the picture anyway.
+ *  A dead image must not hold the queue; a slow one must not be photographed
+ *  half-drawn. (F032) */
+const IMAGE_WAIT_MS = 8000;
+
+/**
+ * Wait until every <img> has finished (loaded OR failed). `load` fires when the
+ * initial markup's resources are done, but images added by the page's own
+ * scripts arrive after it — and the old code waited on `domcontentloaded`, which
+ * says nothing about images at all. Resolving on FAILURE too is deliberate: one
+ * genuinely missing file should still produce a thumbnail of everything else.
+ */
+async function waitForImages(page: Page): Promise<void> {
+  try {
+    await page.waitForFunction(
+      () => Array.from(document.images).every((img) => img.complete),
+      undefined,
+      { timeout: IMAGE_WAIT_MS },
+    );
+  } catch {
+    // Timed out. Take the picture anyway rather than failing the whole capture:
+    // a partly-loaded thumbnail beats none, and the alternative is a pitch that
+    // can never have one.
+    console.warn('[thumbnail] images still loading after', IMAGE_WAIT_MS, 'ms — capturing anyway');
+  }
 }
 
 async function captureHtmlThumbnail(dir: string, outputPath: string, entryFile?: string | null): Promise<void> {
@@ -27,8 +56,6 @@ async function captureHtmlThumbnail(dir: string, outputPath: string, entryFile?:
   // with no error anywhere. (F027)
   if (!htmlFile) throw new Error('No HTML file to capture a thumbnail from');
 
-  const html = fs.readFileSync(htmlFile, 'utf-8');
-
   // One browser at a time, process-wide — see lib/browser.ts. (F027)
   await withBrowser(async (browser) => {
     const ctx = await browser.newContext({
@@ -37,8 +64,15 @@ async function captureHtmlThumbnail(dir: string, outputPath: string, entryFile?:
     });
     const page = await ctx.newPage();
 
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 15000 });
-    await page.waitForTimeout(1500); // let CSS animations and fonts settle
+    // NAVIGATE, do not setContent. A page inserted with setContent has no
+    // address: its base URL is about:blank, so `<img src="person-a.jpg">`
+    // resolves against about:blank and can never be fetched — the browser
+    // never even asks. The files sit right next to the HTML on disk, which is
+    // why every thumbnail of an image-carrying pitch came out as a grid of
+    // broken icons. (F032)
+    await page.goto(pathToFileURL(htmlFile).href, { waitUntil: 'load', timeout: 15000 });
+    await waitForImages(page);
+    await page.waitForTimeout(500); // let CSS animations and fonts settle
 
     // Screenshot is 2560×1440 (2x DPR) — resize down to thumbnail
     const raw = await page.screenshot({ type: 'jpeg', quality: 90, fullPage: false });

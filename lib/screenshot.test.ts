@@ -37,7 +37,8 @@ vi.mock('@/lib/browser', async () => {
           return await fn({
             newContext: async () => ({
               newPage: async () => ({
-                setContent: async () => {},
+                goto: async () => {},
+                waitForFunction: async () => {},
                 waitForTimeout: async () => {},
                 screenshot: async () => fakeShot,
               }),

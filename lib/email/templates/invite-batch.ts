@@ -1,11 +1,11 @@
-import { EMAIL_FOOTER, EMAIL_FOOTER_HTML } from '@/lib/email/footer';
+import { EMAIL_FOOTER } from '@/lib/email/footer';
+import { emailShell } from '@/lib/email/templates/layout';
 
 export function buildBatchInviteEmail(params: {
   pitches: { title: string; viewUrl: string; pin?: string }[];
   message?: string;
 }): { html: string; text: string } {
   const { pitches, message } = params;
-  const baseUrl = process.env.BASE_URL || 'https://pitch-vault.fly.dev';
 
   const messageBlock = message
     ? `<p style="margin: 0 0 20px; color: #374151; line-height: 1.6;">${message.replace(/\n/g, '<br>')}</p>`
@@ -22,30 +22,11 @@ export function buildBatchInviteEmail(params: {
     )
     .join('');
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 0; background: #f9fafb;">
-  <div style="max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-    <div style="background: #0d0f1a; padding: 28px 32px; text-align: center;">
-      <img src="${baseUrl}/pitch-vault-logo-email.png" alt="Pitch Vault" width="300" height="122" style="height: 60px; width: auto; display: inline-block;" />
-    </div>
-    <div style="padding: 32px;">
-      <h2 style="margin: 0 0 20px; color: #111827; font-size: 20px;">Du er inviteret til at se ${pitches.length === 1 ? 'en præsentation' : `${pitches.length} præsentationer`}</h2>
-      ${messageBlock}
-      ${pitchRows}
-    </div>
-    <div style="background: #f3f4f6; padding: 16px; text-align: center;">
-      <p style="margin: 0; color: #9ca3af; font-size: 12px;">${EMAIL_FOOTER_HTML}</p>
-    </div>
-  </div>
-</body>
-</html>
-  `.trim();
+  const html = emailShell({
+    heading: `Du er inviteret til at se ${pitches.length === 1 ? 'en præsentation' : `${pitches.length} præsentationer`}`,
+    body: `      ${messageBlock}
+      ${pitchRows}`,
+  });
 
   const textPitches = pitches
     .map((p) => `• ${p.title}\n  ${p.viewUrl}${p.pin ? `\n  Adgangskode: ${p.pin}` : ''}`)

@@ -1,3 +1,6 @@
+import { emailShell } from '@/lib/email/templates/layout';
+import { EMAIL_FOOTER } from '@/lib/email/footer';
+
 /**
  * Turning a pitch's form answers into a mail a human can read. (F031.2)
  *
@@ -77,29 +80,40 @@ function esc(s: string): string {
     .replace(/'/g, '&#39;');
 }
 
-/** The mail body. Both forms are built from the SAME escaped data, so an answer
- *  cannot be safe in one and markup in the other. */
+/**
+ * The mail body, in the same shell as every other Pitch Vault mail.
+ *
+ * Both forms are built from the SAME escaped data, so an answer cannot be safe
+ * in one and markup in the other.
+ */
 export function renderSubmission(
   pitchTitle: string,
   fields: SubmissionField[],
 ): { html: string; text: string } {
-  const rows = fields
+  // A stacked label-over-answer block rather than a two-column table: the
+  // answers are free text of unpredictable length, and a narrow label column
+  // wraps into a ladder on a phone.
+  const blocks = fields
     .map(
       (f) =>
-        `<tr>` +
-        `<td style="padding:6px 12px 6px 0;color:#6b7280;vertical-align:top;white-space:nowrap;">${esc(f.label)}</td>` +
-        `<td style="padding:6px 0;color:#111827;">${esc(f.value) || '<em style="color:#9ca3af;">(tomt)</em>'}</td>` +
-        `</tr>`,
+        `      <div style="margin: 0 0 18px;">` +
+        `<div style="color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;margin:0 0 4px;">${esc(f.label)}</div>` +
+        `<div style="color:#111827;font-size:15px;line-height:1.5;white-space:pre-wrap;">` +
+        `${esc(f.value) || '<span style="color:#9ca3af;font-style:italic;">(ikke udfyldt)</span>'}` +
+        `</div></div>`,
     )
-    .join('');
+    .join('\n');
 
-  const html =
-    `<p style="color:#374151;">Et svar er indsendt fra <strong>${esc(pitchTitle)}</strong>.</p>` +
-    `<table style="border-collapse:collapse;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;">${rows}</table>`;
+  const body =
+    `      <p style="margin: 0 0 24px; color: #374151;">Der er indsendt et svar p\u00e5 <strong>${esc(pitchTitle)}</strong>.</p>\n` +
+    `      <div style="border-top: 1px solid #e5e7eb; padding-top: 20px;">\n${blocks}\n      </div>`;
+
+  const html = emailShell({ heading: 'Nyt svar fra en pitch', body });
 
   const text =
-    `Et svar er indsendt fra "${pitchTitle}".\n\n` +
-    fields.map((f) => `${f.label}: ${f.value || '(tomt)'}`).join('\n');
+    `Der er indsendt et svar p\u00e5 "${pitchTitle}".\n\n` +
+    fields.map((f) => `${f.label}:\n${f.value || '(ikke udfyldt)'}`).join('\n\n') +
+    `\n\n\u2014 ${EMAIL_FOOTER}`;
 
   return { html, text };
 }

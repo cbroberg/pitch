@@ -1,13 +1,24 @@
-import { Resend } from 'resend';
 import { buildInviteEmail } from './templates/invite';
 import { buildUserInviteEmail } from './templates/invite-user';
 import { buildBatchInviteEmail } from './templates/invite-batch';
-import { MAIL_FROM } from '@/lib/email/from';
+import { mailer } from '@/lib/email/mailer';
+import type { MailResult } from '@broberg/mail';
 
-function getResend(): Resend {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error('RESEND_API_KEY is not configured');
-  return new Resend(apiKey);
+/**
+ * Sending goes through @broberg/mail (F031.1). The package never throws and
+ * never lets a failure look like a success — but it DOES answer
+ * `{ ok: true, skipped: true }` when the gate is shut, and these callers treat
+ * a resolved promise as "the customer got it". So a skip is raised here rather
+ * than swallowed: an invitation that reached nobody must not return quietly.
+ */
+function throwIfNotDelivered(result: MailResult, what: string): void {
+  if (!result.ok) throw new Error(`Email send failed (${what}): ${result.error}`);
+  if (result.skipped) {
+    throw new Error(
+      `Email NOT delivered (${what}): the mail gate is shut — reason "${result.reason}". ` +
+        `Nothing was sent. Fix the gate rather than retrying.`,
+    );
+  }
 }
 
 export async function sendInviteEmail(params: {
@@ -18,22 +29,16 @@ export async function sendInviteEmail(params: {
   expiresAt: Date | null;
   pin?: string;
 }): Promise<void> {
-  const resend = getResend();
-  const from = MAIL_FROM;
-
   const { html, text } = buildInviteEmail(params);
 
-  const { error } = await resend.emails.send({
-    from,
+  const result = await mailer().send({
     to: params.to,
     subject: `You've been invited to view: ${params.pitchTitle}`,
     html,
     text,
   });
 
-  if (error) {
-    throw new Error(`Email send failed: ${error.message}`);
-  }
+  throwIfNotDelivered(result, 'invite');
 }
 
 export async function sendUserInviteEmail(params: {
@@ -43,22 +48,16 @@ export async function sendUserInviteEmail(params: {
   invitedByName?: string;
   expiresAt: Date;
 }): Promise<void> {
-  const resend = getResend();
-  const from = MAIL_FROM;
-
   const { html, text } = buildUserInviteEmail(params);
 
-  const { error } = await resend.emails.send({
-    from,
+  const result = await mailer().send({
     to: params.to,
     subject: 'Du er inviteret som bruger af Pitch Vault',
     html,
     text,
   });
 
-  if (error) {
-    throw new Error(`Email send failed: ${error.message}`);
-  }
+  throwIfNotDelivered(result, 'user-invite');
 }
 
 export async function sendBatchInviteEmail(params: {
@@ -67,21 +66,17 @@ export async function sendBatchInviteEmail(params: {
   pitches: { title: string; viewUrl: string; pin?: string }[];
   message?: string;
 }): Promise<void> {
-  const resend = getResend();
-  const from = MAIL_FROM;
-
   const { html, text } = buildBatchInviteEmail(params);
   const subject = params.pitches.length === 1
     ? `Du er inviteret til at se: ${params.pitches[0].title}`
     : `Du er inviteret til at se ${params.pitches.length} præsentationer`;
 
-  const { error } = await resend.emails.send({
-    from,
+  const result = await mailer().send({
     to: params.to,
     ...(params.cc && params.cc.length > 0 ? { cc: params.cc } : {}),
     subject,
     html,
     text,
   });
-  if (error) throw new Error(`Email send failed: ${error.message}`);
+  throwIfNotDelivered(result, 'batch-invite');
 }

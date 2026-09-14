@@ -79,3 +79,34 @@ describe('the mail shows no email address, and does point at the site (F029.3)',
     expect('skriv til os på hej@broberg.ai').toMatch(ADDRESS);
   });
 });
+
+/**
+ * The migration to @broberg/mail must not leave a second way to send. (F031.1)
+ */
+describe('one way out of the house (F031.1)', () => {
+  it('no raw Resend client remains in app code', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const hits: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (e.name === 'node_modules' || e.name === '.next' || e.name.startsWith('.')) continue;
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) walk(full);
+        else if (/\.tsx?$/.test(e.name)) {
+          const src = fs.readFileSync(full, 'utf-8');
+          // The test file itself names these strings; skip it.
+          if (full.endsWith('no-address.test.ts')) continue;
+          if (/new Resend\s*\(/.test(src) || /from ['"]resend['"]/.test(src)) hits.push(full);
+        }
+      }
+    };
+    walk(process.cwd());
+    expect(hits).toEqual([]);
+  });
+
+  it('MUTATION CONTROL: the scan really does look at files', () => {
+    const fs = require('fs');
+    expect(fs.existsSync('lib/email/resend.ts')).toBe(true);
+  });
+});
